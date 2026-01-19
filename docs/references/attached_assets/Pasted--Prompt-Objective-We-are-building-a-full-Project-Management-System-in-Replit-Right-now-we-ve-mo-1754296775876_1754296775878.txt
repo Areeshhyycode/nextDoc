@@ -1,0 +1,95 @@
+🚧 Prompt Objective:
+We are building a full Project Management System in Replit. Right now, we’ve moved all data from an Excel-based Google Sheet into this system, and the Excel sheet is no longer in use.
+We need the full working app with the following architecture, UI/UX improvements, and functionality.
+
+🧩 1. CORE ARCHITECTURE & DATA FLOW
+The app should have a clean and structured layout:
+
+A Dashboard tab that only shows a 360° executive overview
+
+Separate tabs for each department:
+
+Product
+
+Design
+
+Dev
+
+Marketing & Sales
+
+All project/task data must live in a central internal database (SQLite or @replit/database)
+
+Dashboard metrics and charts should be automatically updated based on the department task data
+
+🗂️ 2. DEPARTMENT TABS (CRUD Interface)
+Each department tab (Product, Design, Dev, Marketing & Sales) should include:
+
+🔹 Table view of department-specific tasks (auto-filtered by department)
+
+🔹 Search and filtering by status, owner, due date
+
+🔹 Add New Task button → opens modal or form with fields:
+
+Task title
+
+Department (auto-selected)
+
+Status (e.g., Completed, In Progress, Not Started, Reviewing, Blocked, Design Approval Needed)
+
+Owner
+
+Due Date
+
+Completion % (slider or input)
+
+Notes
+
+🔹 Inline editing or modal edit for updating task status, due date, completion %, notes, owner, etc.
+
+🔹 Optional: small progress chart for that department (e.g., donut chart for task status)
+
+📊 3. DASHBOARD (360° Executive Overview)
+The dashboard should only visualize data, not edit it.
+
+Include the following sections:
+
+🔸 Total number of tasks
+
+🔸 Tasks by status: Completed, In Progress, Not Started, Blocked, Reviewing
+
+🔸 Donut or bar chart for task status distribution
+
+🔸 Progress chart (e.g., overall completion %)
+
+🔸 Department-wise task breakdown (bar or pie chart)
+
+🔸 Quick highlights (e.g., total overdue tasks, total blocked tasks)
+
+All data should pull from the central database. Dashboard must update in real-time or on refresh after changes in department tabs.
+
+🖼️ 4. UI/UX & DESIGN FIXES
+Current UI is too basic. Please:
+
+Apply clean layout with proper spacing, padding, and font sizes
+
+Fix any card overlaps, scroll issues, or input misalignment
+
+Use a consistent color palette and font hierarchy
+
+Ensure responsiveness for all screen sizes
+
+Use subtle shadows, rounded corners (8px–16px), and section dividers for visual clarity
+
+🗃️ 5. INITIAL DATA SEEDING (From Excel File)
+I’ve already uploaded all the Excel screenshots (from the now-deprecated Google Sheet). Use them to populate initial tasks for each department.
+
+This data should be seeded into the internal database once, and moving forward, everything must run from the Replit dashboard.
+
+We do not need to re-upload Excel again. It was only used to migrate existing task data.
+
+Once done, the result should be:
+
+✅ Executive-style dashboard with no task editing
+✅ Fully interactive department tabs for all CRUD operations
+✅ Clean UI/UX, not MVP-quality but product-like
+✅ No more dependency on Excel or Google Sheets

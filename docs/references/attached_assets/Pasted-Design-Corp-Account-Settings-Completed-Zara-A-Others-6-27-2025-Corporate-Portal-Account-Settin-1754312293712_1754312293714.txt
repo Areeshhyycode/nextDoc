@@ -1,0 +1,25 @@
+Design	Corp - Account Settings	Completed	Zara A.	Others	6/27/2025		Corporate Portal - Account Settings (includes Profile Settings, Assets, Password & Security, and BugHunting Campaign)
+Design	Design System Token Update	Ongoing	Zara A.	Others			 Updating Figma variables and design system tokens
+Design	Corp - My Profile	Design Approval Needed	Zara A.	Others	7/4/2025		"Corporate Portal - My Profile (including layout, UX, and the upgrade flow for Basic Plan users) 
+Blocker: Sales copy is late. (Owner of task - Tom / Due: Thursday, 07/10/2025)"
+Design	Corp - Bounty Missions UX Review	Completed	Zara A.	Others	7/14/2025		"Corporate Portal - Bounty Missions page 
+gathering insights from the team and identifying UX opportunities before the full design phase begins."
+Design	Align Upselling Logic - sales/dev	Completed	Zara A.	Others	7/10/2025		
+Design	"Plan Upgrade for General Users – 
+Ideation & High-Fidelity Design"	Completed	Zara A.	Others	7/8/2025		"Conducted an ideation session to walk Tom (Sales Lead) through proposed upgrade flow for general users. 
+Designed high-fidelity screens to support upgrade entry points across the profile page and related sections. 
+Ensured alignment between product and sales."
+Design	Mission badge components	Completed	Zara A.	Others	7/16/2025		Reviewed and updated the Mission Badge component after dev team’s front-end and back-end refactoring was completed.
+Design	Review Sales Copy	Completed	Zara A.	Others	7/16/2025		Review and provide feedback on the sales copy with detailed suggestions to align it with clear, UI-friendly platform content.
+Design	Corp - Bounty Missions Design	Design Approval Needed	Zara A.	Others	7/23/2025		Corporate Portal - Bounty Missions (full page)
+Design	Update Sponsor Logos for BugHunting Page	Completed	Zara A.	Others	7/21/2025		Update sponsor logos for BugHunting page and send to dev team.
+Design	Corp - Account Settings Design Handoff	Temporary Hold	Zara A.	Others	7/21/2025		"Finalize and document the Account Settings design for the corporate portal and conduct a design handoff meeting 
+with the development team.
+Dev handoff meeting - ON HOLD! Dev Team request for delay."
+Design	Text Button components 	Completed	Zara A.	Others	7/22/2025		Update text button components to add a set of primary and secondary text buttons with icon position on the left.
+Design	Create a new badge components for plans	Completed	Zara A.	Others	7/22/2025		Created badge components for the Basic and Premium plans.
+Design	Media Coverage Page - Public website	Completed	Zara A.	Others	8/1/2025		Designed a new page for our public website to showcase media coverage, including podcasts and articles.
+Design	Platform Walkthrough Integration - Ideation Phase	In progress - Design	Zara A.	Others			Waiting for the updated link to previous work from shaharyar.asgher@gmail.com. 
+Design	AI Agent Integration - Ideation Phase	Temporary Hold	Zara A.	Others			Starts after the bughunting campaign.
+Design	Bounty Hunters Onboarding - system usability scale	Completed	Zara A.	Others	8/5/2025		
+Design	Bounty Hunter - Dashboard page		Zara A.	Others			

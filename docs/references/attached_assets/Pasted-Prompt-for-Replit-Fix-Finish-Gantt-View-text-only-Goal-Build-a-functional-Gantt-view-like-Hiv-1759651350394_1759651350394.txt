@@ -1,0 +1,102 @@
+Prompt for Replit — Fix & Finish Gantt View (text-only)
+
+Goal
+Build a functional Gantt view like Hive’s. The left table and right timeline must stay in sync. Tasks render as colored bars between start/end dates, support inline create/edit, and reflect completion state.
+
+1) Layout & Scrolling
+
+Two panes: Left table (Task Name, Start, End) and Right timeline.
+
+Single horizontal scroll controlling both month + date header and timeline (no separate scrolls).
+
+Sticky left table; sticky header (Month row above Day row).
+
+Zoom: Day | Week | Month (default Day).
+
+Show a vertical “Today” line.
+
+2) Left Table (editable)
+
+Columns: Task Name, Start, End.
+
+Resizable columns by drag; widths persist per user.
+
+Inline editing for Start/End (date pickers).
+
+A checkbox before Task Name → toggles completed.
+
+Row menu: Open, Duplicate, Delete.
+
+Add task row at top of each group/section + global “+ New task” button.
+
+3) Timeline Rendering
+
+Each task with valid Start/End renders as a bar spanning those dates.
+
+Bar color rules (first available):
+
+task.label.color
+
+else by status: done=green, in_progress=blue, unstarted=gray
+
+Completed tasks show a ✓ checkmark icon on the bar and 60% opacity.
+
+Avatar chip at bar start when assignee exists.
+
+Bars are draggable (move left/right updates Start/End).
+
+Bar resize handles left/right (updates Start or End).
+
+Creating from timeline: drag on empty grid → new task modal prefilled with dates.
+
+4) Data Sync (single source of truth)
+
+Any change in table (dates, title, complete) updates the bar instantly.
+
+Any change on the bar (drag/resize/complete) updates the table instantly.
+
+Newly created tasks (table or timeline) appear in both panes immediately.
+
+5) Header & Grid
+
+Header: two rows Month (e.g., “Apr 2025”) and Day (01…30).
+
+Months and days scroll together with the timeline.
+
+Light vertical grid lines per day; heavier line at week start.
+
+6) Interactions & Keyboard
+
+Space toggles complete on focused row.
+
+Delete removes task (confirm).
+
+Arrow keys move focus; Enter edits title.
+
+7) Empty/Errors
+
+If a task has no dates, show a subtle “No dates” badge in the table; no bar rendered.
+
+Empty state in timeline: “No dated tasks yet — drag on the grid to create one.”
+
+8) Performance
+
+Virtualize rows; debounce save (800ms).
+
+Smooth 60fps scroll/drag.
+
+9) Acceptance Criteria
+
+I can resize Task Name/Start/End columns and widths persist.
+
+Checking a task makes the bar show a ✓ and turn green/60% opacity.
+
+Tasks render as colored bars using their start/end; I can drag and resize bars to change dates.
+
+I can add tasks from the table and by dragging on the timeline; both appear in both panes.
+
+Month and Day headers move together with one horizontal scroll (no desync).
+
+Different tasks show different colors based on label/status.
+
+Timeline shows a Today line and daily grid.

@@ -1,0 +1,203 @@
+Category	Task	Status	Owner	Stage	Due date	Risk	Notes
+Bug Hunting Campaign 2025	Email - 1.2 Re-engage Previous Year Participants	Completed	galina@cyberbay.tech  tom@cyberbay.tech	Pre-event	6/17/2025		"Copy - Tom and Galina - 12th Jun 2025
+Template: https://www.notion.so/Email-2-1a-Re-engaging-previous-participants-Badge-Earned-Corp-1-20df6cda5915803d91f0fac30fd2ff2d?source=copy_link
+Dev team - 16th Jun 2025 (one off email)
+Reschedule 17th Jun to prepare template and mail list
+"
+Bug Hunting Campaign 2025	Website - Landing Page 	Completed	heidi fung	Pre-event	6/6/2025		"Design - Zara - 4th Jun 2025
+Coding - Dev team - 6th Jun 2025
+Dev team: Including Upcoming event at Main homepage and BugHunting event landingpage"
+Bug Hunting Campaign 2025	Marketing - Flyer	Completed	heidi fung	Pre-event	6/12/2025		Design from Freelancer
+Bug Hunting Campaign 2025	Website - QR Code to go to Landing Page	Completed	heidi fung	Pre-event	6/6/2025		"Coding - Dev team - 6th Jun 2025
+URL for Landing page will be https://cyberbay.tech/events/protectHK2025"
+Bug Hunting Campaign 2025	Workflow - Sponsor to Sign in for Referee	Not started	heidi fung	Pre-event	6/26/2025		"Heidi - get the list form sponsors - 20th Jun 2025 (The sponsor not yet give us the referees list - Recent update - 1st July 2025)
+Coding - Dev team - 26th Jun 2025
+
+1. Sponsors will proivde a list of Referee emails (~ 200 emails account)
+2. Creates account for the Referee - Label or Tag to corresponding Sponsors
+3. Sponsors and Cyberbay should be able to login Corporates acccount for administration 
+    - SponsorSupport+CorpABC@sponsor.com
+    - BugHunting+CorpABC@cyberbay.tech
+Check with Heidi"
+Bug Hunting Campaign 2025	Website - Sign-Up form , Corporates and BH	Completed	heidi fung	Pre-event	6/6/2025		"Design - Zara - 12th Jun 2025
+Coding - Dev team - 16th Jun 2025
+1. Embedded Promo code ""protecthk2025""
+2. to deffraintate the corporates for BugHunting2025 and other exsisting customers
+2.1 seperate email flows for BugHunting related updates
+2.2 dash board after login should be different, Completetion Rate for badge earning 
+should be shown for BugHunting participants, but not the exsisting customers"
+Bug Hunting Campaign 2025	Email - 1.1 Welcome & Enrollment Emails	Completed	heidi fung	Pre-event	6/9/2025		"Copy  - Natalie - 6th Jun 2025
+Coding - Dev team - 9th Jun 2025"
+Bug Hunting Campaign 2025	Email -1.3 Nudge HK BH for upcoming BugBounty Event	Completed	heidi fung	Pre-event	6/23/2025		"Trigger: one off 
+Copy - Natalie - 17 Jun
+Vetted Hunter list - Heidi 20 Jun
+Dev team - 23h Jun 2025 (one off email)"
+Bug Hunting Campaign 2025	Website - Sign-Up form , Generate Referral Code for each Sponsors 	Completed	heidi fung	Pre-event	6/20/2025		"Coding - Dev team - 20th Jun 2025
+-Generate specific Referral Code for each sponsors
+  -Use for the list of referees from sponsors
+System generate automatically"
+Bug Hunting Campaign 2025	"Website - Corp - Sign UP - OTP
+quang@cyberbay.tech Any update requried or we can use current flow?"	Completed	heidi fung	Pre-event	6/12/2025		"Design - Zara - 9th Jun 2025
+Coding - Dev team - 12th Jun 2025"
+Bug Hunting Campaign 2025	"Website - Corp/BH - Sign In
+quang@cyberbay.tech Any update requried or we can use current flow?"	Completed	heidi fung	Pre-event	6/12/2025		"Design - Zara - 9th Jun 2025
+Coding - Dev team - 12th Jun 2025"
+Bug Hunting Campaign 2025	"Website - Corp/BH - Sign In- OTP
+quang@cyberbay.tech Any update requried or we can use current flow?"	Completed	heidi fung	Pre-event	6/12/2025		"Design - Zara - 9th Jun 2025
+Coding - Dev team - 12th Jun 2025"
+Bug Hunting Campaign 2025	Website - Corp - Bountystreak	Completed	heidi fung	During event	6/18/2025		"Design - Zara - 9th Jun 2025
+Coding - Dev team - 11th Jun 2025
+
+The page showing 
+- Listed Bounty mission
+- Badge completion rate
+Design - update wordings from 2024 
+Note 12 Jun: Deployed to PRD 
+Pending:  Update new design ( add 2 tooltips) and fix the redirection after signing in successfully
+Note 13 Jun: 
+- Add card to the Bounty Mission page 
+- Update counter logic 
+Note 18 Jun: Update issue"
+Bug Hunting Campaign 2025	Logic -Bounty Rewards setting	Completed	heidi fung	During event	6/18/2025		"Coding - Dev team - 18th Jun 2025
+
+Bounty set by Cyberbay but not participants:
+Cap amount critical bug Critical 7,000 High: 5,000, Med/Low 1000
+Utilisation: 
+Tier 1: Default Value: 7000 | 5000 | 1000 , Cumulative Total>= 5000 to Tier 2
+Tier 2: Default Value: 4200 | 3000 | 600  ,  Cumulative Total>= 8000 to Tier 3
+Tier 3: Default Value: 2520 | 800   | 0     "
+Bug Hunting Campaign 2025	Logic -Bounty Rewards setting - No bugs found	Completed	heidi fung	During event	6/18/2025		"Coding - Dev team - 18th Jun 2025
+
+Schedule every 3 days Check list of corporates with NO bug findings. 
+Increcase the amount as follow
+Original: 100% (7000,5000,1000)
+after 3 days: 8000 | 6000 | 2000
+after 6 days  9000 | 7000 | 3000
+after 9 days 10000 | 8000 | 4000
+(Add $1000 for every 3 days)"
+Bug Hunting Campaign 2025	Website - Corp - Reports	Completed	heidi fung	During event	6/18/2025		"Coding - Dev team - 18th Jun 2025
+
+Crop - Reports Pages
+1. Default Page
+2. Reports auto purchase within first month of Campaign (like premium)
+3. Pending Re-test
+4. Retest un-resolved
+5. Selected Checked Box
+
+New Logic
+1st month (July) - the corporates would be treated as  premium clients
+2nd month (Aug) -new reported bugs needed to be purchased
+Remarks : in August corporates should be still able to access to bug reports found in July"
+Bug Hunting Campaign 2025	Veeting BH	Completed	heidi fung	Pre-event	6/20/2025		HKPF - Louis confirmed the vetted list will be ready by 20 June
+Bug Hunting Campaign 2025	Marketing - Flyer	Completed	heidi fung	During event			"Content - Heidi and Galina 13th Jun 2025
+Coding - Dev team - 18th Jun 2025
+
+Reminder to launch mission and verify assets for corporate 3 days after first registration "
+Bug Hunting Campaign 2025	Website - Link/Button/ Pop-up/Carousell to show BugHunting 2025 and to the landing page	Completed	heidi fung 	Pre-event	6/12/2025		"Design - Zara - 9th Jun 2025
+Coding - Dev team - 12th Jun 2025"
+Bug Hunting Campaign 2025	Website - Corp - List Bounty	Completed	heidi fung	During event	6/18/2025		"Coding - Dev team - 18th Jun 2025
+Launch Bounty Program
+1. Bounty details
+2. Set up Targets
+3. Rewards Setting 
+(Default Value [refer to reward setting], Locked and cannot update by Crops)
+
+4. Review Terms
+5. Verify Assets
+(If refered by sponsor i.e. with referral code, no need to verify Assests)
+
+6. Credentials"
+Bug Hunting Campaign 2025	Dev- Create Cyberbay Support account for Self-registration Company 	Completed	quang@cyberbay.tech	Pre-event	7/1/2025		"for every self-registration, please batch create account like the following example
+e.g.
+bughunting+CoEmailDomain@cyberbay.tech
+pwd: |3H+CoEmailDomain
+so that we will have account that can help manage the missions for the participants."
+Bug Hunting Campaign 2025	Dev-Set up mission for Self-Registration/ Opt-in Previous participants 	Completed	quang@cyberbay.tech	Pre-event	7/2/2025		Keep update before the start of mission
+Bug Hunting Campaign 2025	CyberScan for newly Registration 	In progress - Dev	quang@cyberbay.tech	Pre-event	7/5/2025		"Run Daily, tracker sheet ""Self-Registration""
+1. update column H for domain confirmation 
+2. after Domain confirmation run the full cyberscan"
+Bug Hunting Campaign 2025	BH Page, Remove Filter "BugHunting 2024"	Completed	quang@cyberbay.tech	Pre-event	6/20/2025		Coding - Dev team - 20th Jun 2025
+Bug Hunting Campaign 2025	Bh Page, Add Filter "BugHunting 2025"	Completed	quang@cyberbay.tech	Pre-event	6/23/2025		"Only show to the vetted hunter list - 23 Jun 2025
+filter the BugHunting related missions to the Vetted hunters, 
+the filter should be removed after 31 Aug 2025
+Update: Release the missions at 00:00 on July 2 HKT"
+Bug Hunting Campaign 2025	Referral Code - Oh360	Completed	quang@cyberbay.tech	Pre-event	6/24/2025		"Dev Team
+Due date: 24 June
+Create 1 URL and 2 QRcode for signup with:
+(auto-filled) Promo code: protecthk2025
+(auto-filled) Referral code: Oh360
+https://www.notion.so/protecthk2025-referral-Oh360-218f6cda591580c5b748d790fe60c3e4 "
+Bug Hunting Campaign 2025	Only Vetted BH can see the protecthk2025 missions	Completed	quang@cyberbay.tech	During event	7/2/2025		"Update: Release the missions at 00:00 on July 2 HKT
+Finished logic at STG env"
+Bug Hunting Campaign 2025	ProtectHK2025 dashboard.	Completed	tan@cyberbay.tech	During event	7/11/2025		"Tan- Tracker sheet ""2025 Dashboard""
+Pending artifact report data. Once this data is available in Production, it will take 3–4 days to complete the task"
+Bug Hunting Campaign 2025	"Dev Team investigation - Previous registration users cannot view the BH card in missions page 
+Corporate user (without pomo code ) can view the Streak page from the Account Setting tab"	Completed	Thuy (Sweet) Phan Thanh	Pre-event	6/18/2025		
+Bug Hunting Campaign 2025	"Convert Previous participants with no reply Corp to be 2025 participants and 
+ONLY do the Cyberscan wihtout active missions"	Completed	Thuy (Sweet) Phan Thanh	Pre-event	6/24/2025		Tracking till 24 Jun
+Bug Hunting Campaign 2025	Upsell 2.1 - Define event triggers: Time-based Triggers	Completed	Tom Austin	During event	6/20/2025		 See here in notion 
+Bug Hunting Campaign 2025	Upsell 2.2 - Define event triggers: Additional Triggers 	Completed	Tom Austin	During event	6/20/2025		See here in notion 
+Bug Hunting Campaign 2025	Send mail for previous participants - Who didnt reply us til 24 Jun	Completed	Thuy (Sweet) Phan Thanh	Pre-event	6/26/2025		Heidi is preparing the content
+Bug Hunting Campaign 2025	Upsell 3 - Build user cohort based on behaviour (Cyberscan results, industry)	Completed	Tom Austin	During event	6/30/2025		This will be manual as building this into the system will take some time. Blocked: We need to wait for (1) more participating orgs to register and (2) cyberscans to be run for these participating orgs
+Bug Hunting Campaign 2025	Upsell 6 - Design visual elements	Completed	Tom Austin	During event	6/20/2025		The design of billboard banners [in progress by Zara] + splash page [not started, awaiting copy review by Galina]
+Bug Hunting Campaign 2025	Upsell 8 - Set up delivery rules and logic (following on from task Upsell 5)	Completed	Tom Austin	During event	6/30/2025		This will be manual as building this into the system will take some time. Blocked: We need to wait for (1) more participating orgs to register and (2) cyberscans to be run for these participating orgs
+Bug Hunting Campaign 2025	Upsell 9 - Upsell landing/splash page on website	Reviewing	Tom Austin	During event	6/23/2025		Upsell splash page copy as follows; awaiting copy review from Galina Kho then design will create the page - see here for copy
+Bug Hunting Campaign 2025	Upsell 7 - Select notification type	Completed	Tom Austin	During event	6/25/2025		Billboard bannner, once click the CTA will open a splash page with more info on the discount + link to upgrade request page (this will need to built into the website by devs)
+Bug Hunting Campaign 2025	Upsell 1 - Decide upsell products and features	Completed	Tom Austin	During event	6/25/2025		As follows; 1yr Cyberscan, 1yr Bug bounty, Consultation Review. Please see here
+Bug Hunting Campaign 2025	Upsell 4 - Set thresholds for triggers/notifications	Completed	Tom Austin	During event	6/25/2025		I've documented the triggers and their thresholds - although at present this will be manual task owned by me (Tom Austin) - please see here
+Bug Hunting Campaign 2025	Upsell 5 - Upsell copy for Time-based triggers for in-platform billboard + sidebar banners	Completed	Tom Austin 	During event	6/20/2025		Please see here for in-platform banner copy, please review Galina Kho
+Bug Hunting Campaign 2025	Upselling Design Implementation	Completed	zara.amirzade@cyberbay.tech	During event	6/24/2025		Blocker: Waiting on finalized sales plan/copy from Tom (Sales Lead)
+Bug Hunting Campaign 2025	Upsell 10 - Write copy for each additional trigger	Completed	Tom Austin	During event	6/25/2025		
+Bug Hunting Campaign 2025	Upsell 2.2.1 - Event trigger tweaks	Completed	Tom Austin	During event	6/25/2025		
+Bug Hunting Campaign 2025	Upsell 11 - Review Modal Copy for both event triggers (2.1) and additional triggers (2.2)	Completed	Tom Austin				Please Review the copy
+Bug Hunting Campaign 2025	New BH for HKPF's Vetting	Completed	quang@cyberbay.tech	Pre-event	6/27/2025		list of bounty Hunters ( Hong Kong ), already passed KYC from 20 May 2025 - 27 June 2025, 
+Bug Hunting Campaign 2025	Merge Supporting account with participant's account	Completed	quang@cyberbay.tech	Pre-event	7/1/2025		"On-going
+For the corporates that Andy already created support account.
+ https://docs.google.com/spreadsheets/d/1g_l0jNk4FNBBlz-bGOmLocqVXfsMjyY3OnXdsq0_EIg/edit?gid=434141066#gid=434141066
+Please merge the accounts (the corporate ID of supporting account and client signup should be the same)
+e,g, BEHL is having 2 corporate id
+034d9bb5-a730-4c1e-82f3-590e175a76c8
+ff9a69a1-e388-422b-8887-8bcaf708ca9d"
+Bug Hunting Campaign 2025	Enrol Previous participant to event code "protecthk2025"	Completed	quang@cyberbay.tech	Pre-event	6/30/2025		"please check of the list of participants had put on ""protecthk2025"" event code list.
+https://docs.google.com/spreadsheets/d/1g_l0jNk4FNBBlz-bGOmLocqVXfsMjyY3OnXdsq0_EIg/edit?gid=434141066#gid=434141066
+a98743e9-1cb7-4e4b-8503-c00eb081d740        
+VANKE HOLDINGS (HONG KONG) COMPANY LIMITED
+contacted and mentioned that they can only see 2024 records but not for 2025.
+please advise after the update is done and i will get back to the client."
+Bug Hunting Campaign 2025	Enrol Previous participant to event code "protecthk2025" - Cyberscan ONLY	Completed	quang@cyberbay.tech	Pre-event	6/30/2025		"please enrol the companies to ""protecthk2025"" in the list below, Column B is ""blank""
+https://docs.google.com/spreadsheets/d/1g_l0jNk4FNBBlz-bGOmLocqVXfsMjyY3OnXdsq0_EIg/edit?gid=1663119289#gid=1663119289
+Only cyberscan will be run for this list and NO mission will be set up.
+please also check the duplicate records with different corp id, only one report for them should be fine.
+for example:
+9e5677ff-23d1-44fa-bb26-3987efd356fe        
+Early Light Industrial Co Ltd        samuelyeung@earlylight.com.hk
+23a1d204-3f0c-44ff-af2a-cc4902f13fbe        
+Early Light Industrial Co., Ltd.        pennylam@earlylight.com.hk"
+Bug Hunting Campaign 2025	Upselling popup	Completed	quang@cyberbay.tech	Pre-event	7/1/2025		
+Bug Hunting Campaign 2025	Fix issue about Bug Hunting Streak page	Completed	quang@cyberbay.tech	During event	7/2/2025		
+Bug Hunting Campaign 2025	Create URL and QR code 	Completed	quang@cyberbay.tech	Pre-event	7/2/2025		"1. Create URL and QR code for signup with:
+Promo code: protecthk2025
+Referral code: PCPD2025
+
+2. Create URL and QR code for signup with:
+Promo code: protecthk2025
+Referral code: IGSL2025"
+Bug Hunting Campaign 2025	Create URL and QR code 	In progress - Dev	quang@cyberbay.tech	Pre-event	7/7/2025		"1. Create URL and QR code for signup with:
+Promo code: protecthk2025
+Referral code: Sangfor2025
+
+2. Create URL and QR code for signup with:
+Promo code: protecthk2025
+Referral code: Edvance2025"
+Bug Hunting Campaign 2025	Create URL and QR code 	In progress - Dev	quang@cyberbay.tech	Pre-event	7/7/2025		"1. Create URL and QR code for signup with:
+Promo code: protecthk2025
+Referral code: ricoh2025
+
+2. Create URL and QR code for signup with:
+Promo code: protecthk2025
+Referral code: bkpanda2025"
+Bug Hunting Campaign 2025	Summarize Cyberscan reports	Completed	shaharyar Asgher	Pre-event	7/23/2025		
+Bug Hunting Campaign 2025	Send emails to Batch 1 participants	Completed	shaharyar Asgher	Pre-event	7/18/2025		
+Bug Hunting Campaign 2025	Create email templates for 180 old participants	Completed	shaharyar Asgher	Pre-event	7/16/2025		
+Bug Hunting Campaign 2025	Send summarized version of Cyberscan reports to 180 old participants	Completed	quang@cyberbay.tech	Pre-event	7/23/2025		
+							

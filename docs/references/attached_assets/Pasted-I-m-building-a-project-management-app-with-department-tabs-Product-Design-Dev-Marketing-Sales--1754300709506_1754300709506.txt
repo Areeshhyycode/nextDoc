@@ -1,0 +1,38 @@
+I’m building a project management app with department tabs (Product, Design, Dev, Marketing & Sales), and I want to improve the "Add New Task" functionality using the clean, professional layout style of Jira’s task creation modal.
+
+📌 Here's what I need you to do:
+
+1. **Redesign the "Add New Task" modal** (triggered by the "+ Add New Task" button) to replicate Jira’s experience — clean, form-based layout with intuitive UX.
+
+2. **Fields to include in the modal:**
+   - **Task Title** (text field — mandatory)
+   - **Status** (dropdown: Not Started, In Progress, Completed, Blocked, Reviewing)
+   - **Due Date** (with a calendar date picker UI)
+   - **Stage** (dropdown: Planning, Execution, Review, Completed, Others)
+   - **Risk Level** (dropdown: Low, Medium, High)
+   - **Priority** (dropdown: Low, Medium, High, Critical)
+   - **Assignee / Owner** (dropdown populated from predefined team list)
+   - **Description** (rich text field)
+   - **Notes** (optional textarea)
+
+3. ❌ **DO NOT include `Completion %`** in the modal.
+   - It should be displayed only in the table view (as a column).
+   - It should be inline-editable directly from the table using a slider or number input (0–100%).
+   - Add a visual progress bar in that column to reflect the current completion status.
+
+4. **Make the modal fully functional:**
+   - All fields must be saved and pushed to the task table after submission.
+   - The newly created task should appear in the appropriate department tab's table immediately.
+
+5. **Design & UX polish:**
+   - Ensure the UI follows modern, minimal, clean design practices (inspired by Jira’s modal).
+   - Use consistent spacing, clear labels, and visually grouped form sections.
+   - The form should be responsive and mobile-friendly.
+   - Use proper hover effects and visual feedback (e.g. “Task Created” toast).
+
+6. **Column structure (in department tables):**
+   - Task | Status | Owner | Stage | Due Date | Risk | Priority | Completion % | Notes | Actions
+   - Make the `Completion %` field interactive (slider or input).
+   - Ensure all columns are sortable.
+
+Let me know if you need additional screenshots. Please make sure the modal works seamlessly across all department tabs (Product, Design, Dev, Marketing & Sales).

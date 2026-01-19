@@ -1,0 +1,20 @@
+Category	Task	Status	Owner	Stage	Due date	Risk	Notes
+Product	CyberScan Review for Premium Clients	Completed	thuy.phanthithanh@cyberbay.tech	Others	6/27/2025		Sam reviews
+Product	PMTaro Desktop App	Completed	dillon.bong@cyberbay.tech	Others	7/14/2025		Dillon will be working on another felix task first, it's on hold for now, updated the new due date to 7th July. Report passed to PMTaro team, Heidi to prepare the report.
+Product	Wechat MiniApps POC	Completed	dillon.bong@cyberbay.tech	Others	7/4/2025		Customer's MiniApps are not working, felix to send customer a follow up message.
+Product	Bug Hunting on Bug Bounty Campaign	Inprogress	Dillon Bong	Others	8/1/2025		
+Product	Bug Hunting on Bug Bounty Campaign	Not started	Sam L	Others	1/8/2025		
+Product	Phishing Report for RD	Completed	Sam L	Others	7/11/2025		"https://docs.google.com/document/d/1uMeikmOw7oVf9uDxoEx1yBB7jwPyqEGLFZOE4N5RpCk/edit?tab=t.0
+Delivered on 02/07/2025"
+Product	AI Policy and Procedure Examiner	Completed	Sam L	Others			
+Product	AI Voice Phishing Prototype & Demo	Temporary Hold	Sam L	Others	7/31/2025		I shared an initial demo with Galina on 30/06/2025, got her feedback, and am currently working on an updated version.
+Product	Video Generation for Knowledge base	Completed	shaharyar Asgher	Others	8/6/2025		
+Product	Documenting and archiving the CyberWatch project and its source code	Completed	Sam L	Others	8/4/2025		Documenting and archiving the CyberWatch project, including its source code, legacy versions, databases, and associated tickets, to facilitate streamlined maintenance.
+Product	Review Cyberscan Report for the 1st batch of participants	Completed	Sam L	Others			https://drive.google.com/drive/folders/1GqC8cHyw6BZepLb4VgSn2iZGNDuahv-S?usp=drive_link
+Product	Nano Insure Pentest	Completed	dillon.bong@cyberbay.tech	Others	7/23/2025		
+Product	Cybersecurity Challenges Report fot HKT	Completed	Sam L	Others	7/10/2025		
+Others	AB Forensic and Threat Hunt	Completed	Sam L	Others	7/21/2025		Following up with AB regarding the recently identified issue...
+Others	Ha Go Pentest	Reviewing	dillon.bong@cyberbay.tech	Others	7/31/2025		
+							
+							
+							

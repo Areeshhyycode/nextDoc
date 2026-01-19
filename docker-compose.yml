@@ -1,0 +1,10 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: nexustrack-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nexustrack
+    ports:
+      - "5433:5432"

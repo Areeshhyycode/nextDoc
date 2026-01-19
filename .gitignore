@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Server
+server/public
+
+# Vite
+vite.config.ts.*
+
+# Archives
+*.tar.gz
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local directories
+.local/
+
+# Replit
+.replit
+replit.md
+
+# Misc junk files
+cookies.txt
+npm
+npx
+$env
+.claude

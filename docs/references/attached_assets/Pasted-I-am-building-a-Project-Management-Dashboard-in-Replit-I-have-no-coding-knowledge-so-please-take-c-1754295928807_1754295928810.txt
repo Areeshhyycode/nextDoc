@@ -1,0 +1,83 @@
+I am building a Project Management Dashboard in Replit. I have no coding knowledge, so please take care of everything end-to-end.
+
+📌 Step 1 Goal:
+Set up the backend database structure and populate it with my current project data (copied manually from Google Sheets). Once this is done, the Replit app will use this as the only source of truth — no more Excel/Sheets.
+
+🛠️ Requirements:
+
+1. **Create the Backend Schema** using Replit DB or SQLite (your recommendation)
+Each task should have the following fields:
+- id (auto-generated)
+- department (e.g., Product, Design, Dev, Marketing & Sales)
+- task (string)
+- status (Completed, In Progress, Not Started, Reviewing, Blocked, Temporary Hold)
+- owner (string)
+- stage (usually "Others")
+- due_date (formatted as MM/DD/YYYY or ISO)
+- risk (High, Medium, or blank)
+- notes (text or long string)
+
+2. **Seed the Database** with the following data:
+These records come from my existing Google Sheet. Insert them into the database. (Each item below is a task object.)
+
+[
+  {
+    "department": "Product",
+    "task": "CyberScan Review for Premium Client",
+    "status": "Completed",
+    "owner": "thuy.phanthithanh@cyberbay.tech",
+    "stage": "Others",
+    "due_date": "6/27/2025",
+    "risk": "",
+    "notes": "Sam reviews"
+  },
+  {
+    "department": "Product",
+    "task": "PMTaro Desktop App",
+    "status": "Completed",
+    "owner": "dillon.bong@cyberbay.tech",
+    "stage": "Others",
+    "due_date": "7/14/2025",
+    "risk": "",
+    "notes": "Dillon will be working on another Felix task first, it's on hold for now, updated the new due date to 7th July. Report passed to PMTaro team, Heidi to prepare the report."
+  },
+  {
+    "department": "Design",
+    "task": "Corp – My Profile",
+    "status": "Design Approval Needed",
+    "owner": "Zara A.",
+    "stage": "Others",
+    "due_date": "7/4/2025",
+    "risk": "",
+    "notes": "Corporate Portal – My Profile (including layout, UX, and the upgrade flow for Basic Plan users). Blocker: Sales copy is late. (Owner of task – Tom / Due: Thursday, 07/10/2025)"
+  },
+  {
+    "department": "Dev",
+    "task": "Update CyberShadow stage in C",
+    "status": "Completed",
+    "owner": "Sam L",
+    "stage": "Others",
+    "due_date": "7/9/2025",
+    "risk": "",
+    "notes": "Update CyberShadow Stage binary in CyberScan v1 to work with 3th Party latest API version. Ticket: https://www.notion.so/Update-CyberShadow-v1-225fccda59158056beebd8044a604585"
+  },
+  {
+    "department": "Marketing & Sales",
+    "task": "Refine 'Additional Offers': Option 1 (Quarterly BugBounty) and Option 2 (1Review Pricing)",
+    "status": "Reviewing",
+    "owner": "Tom Austin",
+    "stage": "Others",
+    "due_date": "7/18/2025",
+    "risk": "",
+    "notes": "Completed, pending review from Galina Kho. Please see here: https://docs.google.com"
+  }
+]
+
+👉 Please add these 5 now so I can see that everything is working. I will add more records in the next step.
+
+✅ Output expected:
+- A working backend with the database schema created
+- These 5 records populated
+- Ability to fetch and view them via the dashboard later
+
+Do not add UI yet. Just backend and data for now.
