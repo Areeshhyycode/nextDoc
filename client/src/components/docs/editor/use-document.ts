@@ -32,7 +32,15 @@ export function useDocument() {
   const [isSaving, setIsSaving] = useState(false);
   const [showStarterOptions, setShowStarterOptions] = useState(true);
   const [pageStyles, setPageStyles] = useState<PageStyles>(DEFAULT_PAGE_STYLES);
+  const [duplicateError, setDuplicateError] = useState<{
+    show: boolean;
+    suggestedTitle?: string;
+  }>({ show: false });
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Track original values to detect actual changes
+  const originalTitleRef = useRef<string>("");
+  const originalContentRef = useRef<string>("");
 
   const isNewDoc = params.id === "new";
   const docId = isNewDoc ? null : params.id;
@@ -43,6 +51,7 @@ export function useDocument() {
     | "blank"
     | "meeting_notes"
     | "project_overview"
+    | "todo_list"
     || "blank";
 
   // Fetch existing document
@@ -70,6 +79,10 @@ export function useDocument() {
       setLastSavedAt(document.updatedAt ? new Date(document.updatedAt) : null);
       setShowStarterOptions(false);
 
+      // Store original values for change detection
+      originalTitleRef.current = document.title;
+      originalContentRef.current = document.content || "";
+
       // Load page styles from document
       setPageStyles({
         fontStyle: (document.fontStyle || "system") as "system" | "serif" | "mono",
@@ -85,7 +98,7 @@ export function useDocument() {
       });
     } else if (
       isNewDoc &&
-      (category === "meeting_notes" || category === "project_overview")
+      (category === "meeting_notes" || category === "project_overview" || category === "todo_list")
     ) {
       // Use template from templates folder
       const template = getTemplate(category);
@@ -94,6 +107,24 @@ export function useDocument() {
       setShowStarterOptions(false);
     }
   }, [document, isNewDoc, category]);
+
+  // Track document view when opened
+  useEffect(() => {
+    if (docId && !isNewDoc) {
+      apiRequest("PATCH", `/api/docs/${docId}/view`)
+        .then(() => {
+          // Invalidate docs query so list shows updated lastViewedAt
+          queryClient.invalidateQueries({
+            predicate: (query) =>
+              typeof query.queryKey[0] === "string" &&
+              query.queryKey[0].startsWith("/api/docs"),
+          });
+        })
+        .catch((err) => {
+          console.error("Failed to track document view:", err);
+        });
+    }
+  }, [docId, isNewDoc]);
 
   // Hide starter options when content is added
   useEffect(() => {
@@ -137,16 +168,13 @@ export function useDocument() {
       navigate(`/docs/${newDoc.id}`);
     },
     onError: (error: any) => {
-      if (error.code === "DUPLICATE_TITLE") {
-        toast({
-          title: "Document name already exists",
-          description: `Suggested name: "${error.suggestedTitle}"`,
-          variant: "destructive",
+      console.log("Create doc error:", error);
+      if (error?.code === "DUPLICATE_TITLE" || error?.message?.includes("already exists")) {
+        // Show inline warning instead of toast
+        setDuplicateError({
+          show: true,
+          suggestedTitle: error.suggestedTitle,
         });
-        // Auto-update title with suggestion
-        if (error.suggestedTitle) {
-          setTitle(error.suggestedTitle);
-        }
       } else {
         toast({ title: "Failed to create document", variant: "destructive" });
       }
@@ -187,16 +215,13 @@ export function useDocument() {
       setIsSaving(false);
     },
     onError: (error: any) => {
-      if (error.code === "DUPLICATE_TITLE") {
-        toast({
-          title: "Document name already exists",
-          description: `Suggested name: "${error.suggestedTitle}"`,
-          variant: "destructive",
+      console.log("Update doc error:", error);
+      if (error?.code === "DUPLICATE_TITLE" || error?.message?.includes("already exists")) {
+        // Show inline warning instead of toast
+        setDuplicateError({
+          show: true,
+          suggestedTitle: error.suggestedTitle,
         });
-        // Auto-update title with suggestion
-        if (error.suggestedTitle) {
-          setTitle(error.suggestedTitle);
-        }
       } else {
         toast({ title: "Failed to save document", variant: "destructive" });
       }
@@ -204,21 +229,50 @@ export function useDocument() {
     },
   });
 
-  // Autosave functionality
+  // Clear duplicate error when title changes
+  useEffect(() => {
+    if (duplicateError.show) {
+      setDuplicateError({ show: false });
+    }
+  }, [title]);
+
+  // Autosave functionality - only save if title or content actually changed
   useEffect(() => {
     if (!isNewDoc && docId && (title || content)) {
+      // Check if anything actually changed
+      const titleChanged = title !== originalTitleRef.current;
+      const contentChanged = content !== originalContentRef.current;
+
+      // Don't trigger autosave if nothing changed
+      if (!titleChanged && !contentChanged) {
+        return;
+      }
+
       if (autosaveTimerRef.current) {
         clearTimeout(autosaveTimerRef.current);
       }
 
       autosaveTimerRef.current = setTimeout(() => {
-        setIsSaving(true);
-        updateDocMutation.mutate({
-          title,
-          content,
+        // Build update payload - only include changed fields
+        const updatePayload: any = {
           tags,
           ...pageStyles,
-        });
+        };
+
+        // Only include title if it changed
+        if (titleChanged) {
+          updatePayload.title = title;
+          originalTitleRef.current = title; // Update ref after save
+        }
+
+        // Only include content if it changed
+        if (contentChanged) {
+          updatePayload.content = content;
+          originalContentRef.current = content; // Update ref after save
+        }
+
+        setIsSaving(true);
+        updateDocMutation.mutate(updatePayload);
       }, 2000);
     }
 
@@ -358,6 +412,7 @@ export function useDocument() {
     document,
     isLoading,
     openCommentsCount,
+    duplicateError,
 
     // Actions
     handleSave,

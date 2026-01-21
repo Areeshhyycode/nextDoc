@@ -183,6 +183,7 @@ export const documents = pgTable("documents", {
   ownerId: varchar("owner_id").notNull(),
   category: docCategoryEnum("category").notNull().default("blank"),
   tags: text("tags").array().default(sql`ARRAY[]::text[]`),
+  isFavorite: boolean("is_favorite").default(false),
   // Page style preferences
   fontStyle: text("font_style").default("system"),
   fontSize: text("font_size").default("default"),

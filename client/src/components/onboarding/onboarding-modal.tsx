@@ -6,7 +6,6 @@ import { ChevronLeft } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import cyberbayLogo from "@assets/image_1756123336276.png";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface OnboardingModalProps {
@@ -134,11 +133,7 @@ export function OnboardingModal({ open, userName }: OnboardingModalProps) {
       <DialogContent className="max-w-2xl" data-testid="onboarding-modal">
         <div className="py-8">
           <div className="mb-8 flex items-center justify-between">
-            <img
-              src={cyberbayLogo}
-              alt="Cyberbay"
-              className="h-8 w-auto object-contain"
-            />
+            <span className="text-xl font-bold text-primary">Cyberbay PMO</span>
             <span className="text-sm text-muted-foreground">Welcome, {userName}!</span>
           </div>
 

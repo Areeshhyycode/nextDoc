@@ -5,10 +5,7 @@ import sanitizeHtml from "sanitize-html";
 import { fileTypeFromBuffer } from "file-type";
 import { storage } from "../storage";
 import { requireAuth } from "../auth";
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
+import { PDFParse } from "pdf-parse";
 
 // Multer file type
 interface MulterFile {
@@ -91,7 +88,7 @@ const uploadForImport = multer({
     if (ALLOWED_EXTENSIONS.includes(fileExtension)) {
       cb(null, true);
     } else {
-      cb(new FileValidationError("Only PDF and DOCX files are allowed"));
+      cb(new FileValidationError(`Only PDF and DOCX files are allowed. You uploaded a '${fileExtension}' file.`));
     }
   },
 });
@@ -175,13 +172,15 @@ async function validateFile(file: MulterFile): Promise<{
 
 // PDF parse helper
 async function parsePDF(buffer: Buffer): Promise<string> {
-  const pdfData = await pdfParse(buffer);
+  // PDFParse v2 uses class-based API with LoadParameters
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  const textResult = await parser.getText();
 
-  if (!pdfData.text || pdfData.text.trim().length === 0) {
+  if (!textResult.text || textResult.text.trim().length === 0) {
     throw new FileParseError("PDF appears to be empty or contains only images");
   }
 
-  const content = pdfData.text
+  const content = textResult.text
     .split(/\n{2,}/)
     .filter((para: string) => para.trim().length > 0)
     .map((para: string) => {
@@ -192,6 +191,9 @@ async function parsePDF(buffer: Buffer): Promise<string> {
       return `<p>${trimmed.replace(/\n/g, " ")}</p>`;
     })
     .join("\n");
+
+  // Clean up parser resources
+  await parser.destroy();
 
   return sanitizeHtml(content, sanitizeConfig);
 }
@@ -318,7 +320,13 @@ async function importDocumentHandler(req: Request & { file?: MulterFile }, res: 
     res.status(201).json(newDoc);
 
   } catch (error: unknown) {
+    // Log full error details for debugging
     console.error("[DocImport] Error:", error);
+    if (error instanceof Error) {
+      console.error("[DocImport] Error name:", error.name);
+      console.error("[DocImport] Error message:", error.message);
+      console.error("[DocImport] Error stack:", error.stack);
+    }
 
     if (error instanceof FileValidationError) {
       return res.status(400).json({ message: error.message });
@@ -335,7 +343,9 @@ async function importDocumentHandler(req: Request & { file?: MulterFile }, res: 
       return res.status(400).json({ message: error.message });
     }
 
-    res.status(500).json({ message: "Failed to import document" });
+    // Return actual error message for debugging (in production, you might want to hide this)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    res.status(500).json({ message: `Failed to import document: ${errorMessage}` });
   }
 }
 

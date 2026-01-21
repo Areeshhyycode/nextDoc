@@ -119,12 +119,16 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
       navigate(`/docs/${newDoc.id}`);
     },
     onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Failed to import document",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: errorMessage,
         variant: "destructive"
       });
       setIsUploading(false);
+      // Reset file selection so user can try again
+      setSelectedFile(null);
+      setValidationResult(null);
     },
   });
 

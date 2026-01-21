@@ -1,4 +1,4 @@
-import { MessageSquare, Plus, Pencil, Link, Star, FolderInput, Copy, LayoutTemplate, Archive, Trash2, Lock } from 'lucide-react';
+import { MessageSquare, Plus, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -6,14 +6,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Switch } from "@/components/ui/switch";
+import { DocSettingsDropdown } from "./doc-settings-dropdown";
+import type { DocumentWithOwner } from "@shared/schema";
 
 interface SidebarIconsProps {
   commentsOpen: boolean;
@@ -22,15 +16,17 @@ interface SidebarIconsProps {
   onPageStylesToggle: () => void;
   commentsCount?: number;
   isNewDoc?: boolean;
+  document?: DocumentWithOwner | null;
 }
 
-export function SidebarIcons({ 
-  commentsOpen, 
-  pageStylesOpen, 
-  onCommentsToggle, 
+export function SidebarIcons({
+  commentsOpen,
+  pageStylesOpen,
+  onCommentsToggle,
   onPageStylesToggle,
   commentsCount = 0,
-  isNewDoc = false
+  isNewDoc = false,
+  document
 }: SidebarIconsProps) {
   return (
     <TooltipProvider delayDuration={300}>
@@ -42,8 +38,8 @@ export function SidebarIcons({
               onClick={onCommentsToggle}
               className={cn(
                 "relative flex flex-col items-center justify-center w-12 h-12 transition-all group",
-                commentsOpen 
-                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" 
+                commentsOpen
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
                   : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
               )}
               data-testid="sidebar-icon-comments"
@@ -94,87 +90,42 @@ export function SidebarIcons({
         {/* Divider */}
         <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2" />
 
-        {/* Doc Settings Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="relative flex flex-col items-center justify-center w-12 h-12 transition-all group hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-              data-testid="sidebar-icon-doc-settings"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="left" align="start" className="w-56 p-2">
-            <div className="px-2 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-              Doc settings
-            </div>
-
-            <DropdownMenuItem className="gap-3 py-2 px-3 rounded-md cursor-pointer">
-              <Pencil className="h-4 w-4 text-gray-500" />
-              <span className="text-sm">Rename</span>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem className="gap-3 py-2 px-3 rounded-md cursor-pointer">
-              <Link className="h-4 w-4 text-gray-500" />
-              <span className="text-sm">Copy link</span>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem className="gap-3 py-2 px-3 rounded-md cursor-pointer justify-between">
-              <div className="flex items-center gap-3">
-                <Star className="h-4 w-4 text-gray-500" />
-                <span className="text-sm">Favorite</span>
-              </div>
-              <span className="text-gray-400 text-xs">›</span>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem className="gap-3 py-2 px-3 rounded-md cursor-pointer justify-between">
-              <div className="flex items-center gap-3">
-                <FolderInput className="h-4 w-4 text-gray-500" />
-                <span className="text-sm">Move to</span>
-              </div>
-              <span className="text-gray-400 text-xs">›</span>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem className="gap-3 py-2 px-3 rounded-md cursor-pointer">
-              <Copy className="h-4 w-4 text-gray-500" />
-              <span className="text-sm">Duplicate</span>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem className="gap-3 py-2 px-3 rounded-md cursor-pointer justify-between">
-              <div className="flex items-center gap-3">
-                <LayoutTemplate className="h-4 w-4 text-gray-500" />
-                <span className="text-sm">Templates</span>
-              </div>
-              <span className="text-gray-400 text-xs">›</span>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem className="gap-3 py-2 px-3 rounded-md cursor-pointer">
-              <Archive className="h-4 w-4 text-gray-500" />
-              <span className="text-sm">Archive</span>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem className="gap-3 py-2 px-3 rounded-md cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
-              <Trash2 className="h-4 w-4" />
-              <span className="text-sm">Delete</span>
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-
-            <div className="flex items-center justify-between py-2 px-3">
-              <div className="flex items-center gap-3">
-                <Lock className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Protect Doc</span>
-              </div>
-              <Switch />
-            </div>
-
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem className="gap-3 py-2.5 px-3 rounded-md cursor-pointer bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">
-              <span className="text-sm font-medium">Sharing and Permissions</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Doc Settings */}
+        {document && !isNewDoc ? (
+          <DocSettingsDropdown
+            doc={document}
+            trigger={
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="relative flex flex-col items-center justify-center w-12 h-12 transition-all group hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                    data-testid="sidebar-icon-doc-settings"
+                  >
+                    <Settings className="h-5 w-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
+                  Doc Settings
+                </TooltipContent>
+              </Tooltip>
+            }
+          />
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="relative flex flex-col items-center justify-center w-12 h-12 transition-all group hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50"
+                data-testid="sidebar-icon-doc-settings"
+                disabled
+              >
+                <Settings className="h-5 w-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
+              Save document first
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </TooltipProvider>
   );

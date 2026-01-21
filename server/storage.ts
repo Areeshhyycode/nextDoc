@@ -194,7 +194,7 @@ export interface IStorage {
   getDocumentsByOwner(ownerId: string): Promise<DocumentWithOwner[]>;
   getDocumentsByCategory(category: 'blank' | 'meeting_notes' | 'project_overview'): Promise<DocumentWithOwner[]>;
   createDocument(doc: InsertDocument): Promise<Document>;
-  updateDocument(id: string, updates: UpdateDocument): Promise<Document | undefined>;
+  updateDocument(id: string, updates: UpdateDocument, updateTimestamp?: boolean): Promise<Document | undefined>;
   deleteDocument(id: string): Promise<boolean>;
   updateDocumentLastViewed(id: string): Promise<Document | undefined>;
 
@@ -1163,10 +1163,15 @@ export class DatabaseStorage implements IStorage {
     return newDoc;
   }
 
-  async updateDocument(id: string, updates: UpdateDocument): Promise<Document | undefined> {
+  async updateDocument(id: string, updates: UpdateDocument, updateTimestamp: boolean = false): Promise<Document | undefined> {
+    // Only update updatedAt if content or title changed (passed via updateTimestamp flag)
+    const setData = updateTimestamp
+      ? { ...updates, updatedAt: sql`CURRENT_TIMESTAMP` }
+      : { ...updates };
+
     const [updated] = await db
       .update(documents)
-      .set({ ...updates, updatedAt: sql`CURRENT_TIMESTAMP` })
+      .set(setData)
       .where(eq(documents.id, id))
       .returning();
     return updated || undefined;

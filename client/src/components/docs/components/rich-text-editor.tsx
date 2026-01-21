@@ -319,57 +319,6 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
         </div>
       )}
 
-      {/* Table Controls */}
-      {editor.isActive('table') && (
-        <div className="absolute top-0 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-2 flex gap-1 mb-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => editor.chain().focus().addColumnBefore().run()}
-            title="Add column before"
-            className="h-7 px-2 text-xs"
-          >
-            + Col
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => editor.chain().focus().addRowBefore().run()}
-            title="Add row before"
-            className="h-7 px-2 text-xs"
-          >
-            + Row
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => editor.chain().focus().deleteColumn().run()}
-            title="Delete column"
-            className="h-7 px-2 text-xs"
-          >
-            - Col
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => editor.chain().focus().deleteRow().run()}
-            title="Delete row"
-            className="h-7 px-2 text-xs"
-          >
-            - Row
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => editor.chain().focus().deleteTable().run()}
-            title="Delete table"
-            className="h-7 px-2 text-xs text-red-600"
-          >
-            Delete Table
-          </Button>
-        </div>
-      )}
-
       {/* Editor Content */}
       <EditorContent 
         editor={editor} 

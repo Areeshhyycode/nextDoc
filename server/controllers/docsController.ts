@@ -18,9 +18,12 @@ async function getAllDocsHandler(req: Request, res: Response) {
     if (filter === 'my') {
       docs = await storage.getDocumentsByOwner(userId);
     } else if (filter === 'meeting_notes') {
-      docs = await storage.getDocumentsByCategory('meeting_notes');
+      // Get meeting notes only for the current user
+      const allMeetingNotes = await storage.getDocumentsByCategory('meeting_notes');
+      docs = allMeetingNotes.filter(doc => doc.ownerId === userId);
     } else {
-      docs = await storage.getAllDocuments();
+      // Default: show only the current user's documents (not all users' documents)
+      docs = await storage.getDocumentsByOwner(userId);
     }
 
     console.log("[GetDocs] Found:", docs.length, "documents");
@@ -163,7 +166,14 @@ async function updateDocHandler(req: Request, res: Response) {
     if (showLastModified !== undefined) updates.showLastModified = showLastModified;
     if (showPageOutline !== undefined) updates.showPageOutline = showPageOutline;
 
-    const doc = await storage.updateDocument(req.params.id, updates);
+    // Handle isFavorite
+    const { isFavorite } = req.body;
+    if (isFavorite !== undefined) updates.isFavorite = isFavorite;
+
+    // Only update timestamp if title or content changed
+    const shouldUpdateTimestamp = title !== undefined || content !== undefined;
+
+    const doc = await storage.updateDocument(req.params.id, updates, shouldUpdateTimestamp);
 
     if (!doc) {
       res.status(404).json({ message: "Document not found" });
@@ -189,6 +199,85 @@ async function deleteDocHandler(req: Request, res: Response) {
   } catch (error) {
     console.error("Error deleting document:", error);
     res.status(500).json({ message: "Failed to delete document" });
+  }
+}
+
+// Duplicate document
+async function duplicateDocHandler(req: Request, res: Response) {
+  try {
+    const userId = (req.user as any)?.id;
+    const originalDoc = await storage.getDocument(req.params.id);
+
+    if (!originalDoc) {
+      res.status(404).json({ message: "Document not found" });
+      return;
+    }
+
+    // Generate unique title for duplicate
+    const baseTitle = `${originalDoc.title} (Copy)`;
+    const uniqueTitle = await storage.generateUniqueDocumentName(baseTitle);
+
+    // Create duplicate document
+    const duplicateDoc = await storage.createDocument({
+      title: uniqueTitle,
+      content: originalDoc.content || "",
+      ownerId: userId,
+      category: originalDoc.category || 'blank',
+      tags: originalDoc.tags || [],
+      fontStyle: originalDoc.fontStyle || 'system',
+      fontSize: originalDoc.fontSize || 'default',
+      pageWidth: originalDoc.pageWidth || 'default',
+      showCoverImage: originalDoc.showCoverImage ?? false,
+      showPageIconAndTitle: originalDoc.showPageIconAndTitle ?? true,
+      showAuthor: originalDoc.showAuthor ?? false,
+      showContributors: originalDoc.showContributors ?? false,
+      showSubtitle: originalDoc.showSubtitle ?? false,
+      showLastModified: originalDoc.showLastModified ?? true,
+      showPageOutline: originalDoc.showPageOutline ?? false,
+    });
+
+    console.log("[DuplicateDoc] Document duplicated:", duplicateDoc.id);
+    res.status(201).json(duplicateDoc);
+  } catch (error) {
+    console.error("[DuplicateDoc] Error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ message: "Failed to duplicate document", error: errorMessage });
+  }
+}
+
+// Mark document as viewed (update lastViewedAt)
+async function markAsViewedHandler(req: Request, res: Response) {
+  try {
+    const doc = await storage.updateDocumentLastViewed(req.params.id);
+
+    if (!doc) {
+      res.status(404).json({ message: "Document not found" });
+      return;
+    }
+
+    res.json({ id: doc.id, lastViewedAt: doc.lastViewedAt });
+  } catch (error) {
+    console.error("Error marking document as viewed:", error);
+    res.status(500).json({ message: "Failed to mark document as viewed" });
+  }
+}
+
+// Toggle favorite status
+async function toggleFavoriteHandler(req: Request, res: Response) {
+  try {
+    const { isFavorite } = req.body;
+
+    const doc = await storage.updateDocument(req.params.id, { isFavorite });
+
+    if (!doc) {
+      res.status(404).json({ message: "Document not found" });
+      return;
+    }
+
+    res.json({ id: doc.id, isFavorite: doc.isFavorite });
+  } catch (error) {
+    console.error("Error toggling favorite:", error);
+    res.status(500).json({ message: "Failed to toggle favorite" });
   }
 }
 
@@ -268,6 +357,15 @@ export function registerDocsRoutes(app: Express) {
   app.post("/api/docs", requireAuth, createDocHandler as any);
   app.put("/api/docs/:id", requireAuth, updateDocHandler as any);
   app.delete("/api/docs/:id", requireAuth, deleteDocHandler as any);
+
+  // Document duplicate route
+  app.post("/api/docs/:id/duplicate", requireAuth, duplicateDocHandler as any);
+
+  // Document favorite toggle route
+  app.patch("/api/docs/:id/favorite", requireAuth, toggleFavoriteHandler as any);
+
+  // Document view tracking route
+  app.patch("/api/docs/:id/view", requireAuth, markAsViewedHandler as any);
 
   // Document comments routes
   app.get("/api/docs/:id/comments", requireAuth, getCommentsHandler as any);

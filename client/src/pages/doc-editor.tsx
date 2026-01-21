@@ -34,6 +34,7 @@ export default function DocEditorPage() {
     applyTemplate,
     navigate,
     isPending,
+    duplicateError,
   } = useDocument();
 
   // Loading state
@@ -82,6 +83,7 @@ export default function DocEditorPage() {
         showLastModified={pageStyles.showLastModified}
         documentUpdatedAt={document?.updatedAt}
         onSave={handleSave}
+        duplicateError={duplicateError}
       />
 
       {/* Editor */}
@@ -131,6 +133,7 @@ export default function DocEditorPage() {
         }}
         commentsCount={openCommentsCount}
         isNewDoc={isNewDoc}
+        document={document ? { ...document, owner: null } : null}
       />
     </div>
   );

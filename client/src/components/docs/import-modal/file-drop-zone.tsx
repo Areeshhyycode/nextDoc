@@ -1,5 +1,5 @@
-import { useRef, useCallback } from "react";
-import { Upload, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { Upload, CheckCircle, XCircle, Loader2, AlertTriangle } from "lucide-react";
 import { SelectedFilePreview } from "./selected-file-preview";
 
 interface ValidationResult {
@@ -22,6 +22,36 @@ interface FileDropZoneProps {
   validationResult?: ValidationResult | null;
 }
 
+// Allowed file extensions
+const ALLOWED_EXTENSIONS = [".pdf", ".docx"];
+
+// Get file extension
+function getFileExtension(filename: string): string {
+  const parts = filename.split(".");
+  return parts.length > 1 ? "." + parts.pop()?.toLowerCase() : "";
+}
+
+// Check if file type is valid
+function isValidFileType(file: File): { valid: boolean; error?: string } {
+  const extension = getFileExtension(file.name);
+
+  if (extension === ".doc") {
+    return {
+      valid: false,
+      error: "Old .doc format is not supported. Please convert to .docx"
+    };
+  }
+
+  if (!ALLOWED_EXTENSIONS.includes(extension)) {
+    return {
+      valid: false,
+      error: `Only PDF and DOCX files are allowed. You selected a '${extension || "unknown"}' file.`
+    };
+  }
+
+  return { valid: true };
+}
+
 export function FileDropZone({
   selectedFile,
   onFileSelect,
@@ -33,6 +63,25 @@ export function FileDropZone({
   validationResult = null,
 }: FileDropZoneProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [clientError, setClientError] = useState<string | null>(null);
+
+  // Validate file on client side before sending to server
+  const validateAndSelectFile = useCallback((file: File) => {
+    setClientError(null);
+
+    const validation = isValidFileType(file);
+    if (!validation.valid) {
+      setClientError(validation.error || "Invalid file type");
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    // File is valid, proceed with selection
+    onFileSelect(file);
+  }, [onFileSelect]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -50,13 +99,13 @@ export function FileDropZone({
     onDragStateChange(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      onFileSelect(e.dataTransfer.files[0]);
+      validateAndSelectFile(e.dataTransfer.files[0]);
     }
-  }, [onDragStateChange, onFileSelect]);
+  }, [onDragStateChange, validateAndSelectFile]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      onFileSelect(e.target.files[0]);
+      validateAndSelectFile(e.target.files[0]);
     }
   };
 
@@ -66,13 +115,22 @@ export function FileDropZone({
 
   const handleRemove = () => {
     onFileRemove();
+    setClientError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
+  // Clear client error when user dismisses it
+  const clearClientError = () => {
+    setClientError(null);
+  };
+
   // Determine border color based on validation state
   const getBorderClass = () => {
+    if (clientError) {
+      return "border-red-500 bg-red-50 dark:bg-red-900/20";
+    }
     if (dragActive) {
       return "border-blue-500 bg-blue-50 dark:bg-blue-900/20";
     }
@@ -105,6 +163,22 @@ export function FileDropZone({
           className="hidden"
         />
 
+        {/* Client-side error message (shows when invalid file type selected) */}
+        {clientError && !selectedFile && (
+          <div className="flex flex-col items-center">
+            <AlertTriangle className="h-8 w-8 text-red-500 mb-3" />
+            <p className="text-sm text-red-600 dark:text-red-400 text-center font-medium mb-2">
+              {clientError}
+            </p>
+            <button
+              onClick={clearClientError}
+              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
         {selectedFile ? (
           <div className="space-y-3">
             <SelectedFilePreview file={selectedFile} onRemove={handleRemove} />
@@ -131,7 +205,7 @@ export function FileDropZone({
               )}
             </div>
           </div>
-        ) : (
+        ) : !clientError && (
           <div className="flex flex-col items-center">
             <Upload className="h-6 w-6 text-gray-400 dark:text-gray-500 mb-3" />
             <p className="text-sm text-gray-600 dark:text-gray-400">
