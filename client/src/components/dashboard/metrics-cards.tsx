@@ -110,31 +110,31 @@ export function MetricsCards({ metrics, isLoading }: MetricsCardsProps) {
   ];
 
   return (
-    <div className="space-y-6 mb-12">
+    <div className="space-y-4 sm:space-y-6 mb-8 sm:mb-12">
       <div className="text-center">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent mb-2">
+        <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent mb-1 sm:mb-2">
           Performance Metrics
         </h2>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
           Real-time task distribution and completion tracking
         </p>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
             <Card key={card.title} className="group relative border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:shadow-xl hover:scale-105 transition-all duration-300" data-testid={card.testId}>
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <CardContent className="relative p-4">
-                <div className="text-center space-y-3">
-                  <div className={`mx-auto w-12 h-12 rounded-xl ${card.bgColor} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className={`h-6 w-6 ${card.color}`} />
+              <CardContent className="relative p-3 sm:p-4">
+                <div className="text-center space-y-2 sm:space-y-3">
+                  <div className={`mx-auto w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl ${card.bgColor} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${card.color}`} />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300" data-testid={`${card.testId}-value`}>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300" data-testid={`${card.testId}-value`}>
                       {card.value}
                     </p>
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 leading-tight">
+                    <p className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 leading-tight">
                       {card.title}
                     </p>
                   </div>

@@ -41,8 +41,15 @@ export function OnboardingModal({ open, userName }: OnboardingModalProps) {
     mutationFn: async (data: any) => {
       return await apiRequest("POST", "/api/onboarding/complete", data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    onSuccess: async () => {
+      // Wait for query invalidation and refetch to complete before redirecting
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+
+      // Small delay to ensure state updates are processed
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Use hard redirect to ensure clean state
       window.location.href = "/";
     },
     onError: () => {
@@ -58,8 +65,15 @@ export function OnboardingModal({ open, userName }: OnboardingModalProps) {
     mutationFn: async () => {
       return await apiRequest("POST", "/api/onboarding/skip", {});
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    onSuccess: async () => {
+      // Wait for query invalidation and refetch to complete before redirecting
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+
+      // Small delay to ensure state updates are processed
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Use hard redirect to ensure clean state
       window.location.href = "/";
     },
     onError: () => {
@@ -123,7 +137,8 @@ export function OnboardingModal({ open, userName }: OnboardingModalProps) {
   };
 
   const handleClose = (isOpen: boolean) => {
-    if (!isOpen) {
+    // Prevent closing during mutation
+    if (!isOpen && !completeOnboardingMutation.isPending && !skipOnboardingMutation.isPending) {
       skipOnboardingMutation.mutate();
     }
   };
@@ -350,7 +365,7 @@ export function OnboardingModal({ open, userName }: OnboardingModalProps) {
             <Button
               variant="ghost"
               onClick={handleBack}
-              disabled={step === 1}
+              disabled={step === 1 || completeOnboardingMutation.isPending}
               className="flex items-center gap-2"
               data-testid="onboarding-back"
             >
@@ -359,11 +374,11 @@ export function OnboardingModal({ open, userName }: OnboardingModalProps) {
             </Button>
             <Button
               onClick={handleNext}
-              disabled={!canProceed()}
+              disabled={!canProceed() || completeOnboardingMutation.isPending}
               className="px-8"
               data-testid="onboarding-next"
             >
-              {step === 6 ? "Finish" : "Next"} →
+              {completeOnboardingMutation.isPending ? "Saving..." : step === 6 ? "Finish" : "Next"} →
             </Button>
           </div>
         </div>

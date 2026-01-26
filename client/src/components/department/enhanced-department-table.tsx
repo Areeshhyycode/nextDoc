@@ -39,6 +39,8 @@ import { TaskModal } from "./task-modal";
 import { format } from "date-fns";
 import { type Project } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { STATUS_COLORS, RISK_COLORS, STAGE_COLORS } from "@/constants/colors";
+import { formatDisplayValue } from "@/lib/utils";
 
 interface EnhancedDepartmentTableProps {
   department: string;
@@ -49,37 +51,6 @@ interface EnhancedDepartmentTableProps {
 
 type SortField = 'task' | 'status' | 'owner' | 'stage' | 'dueDate' | 'risk' | 'description';
 type SortDirection = 'asc' | 'desc';
-
-const statusColors = {
-  'not_started': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-  'in_progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  'reviewing': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  'completed': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'blocked': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  'design_approval_needed': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  'temporary_hold': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
-};
-
-const riskColors = {
-  'low': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'medium': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  'high': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  'none': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
-};
-
-const stageColors = {
-  'others': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-  'pre_event': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  'day_of': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-  'post_event': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'during_event': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
-};
-
-const formatDisplayValue = (value: string) => {
-  return value.split('_').map(word => 
-    word.charAt(0).toUpperCase() + word.slice(1)
-  ).join(' ');
-};
 
 export function EnhancedDepartmentTable({ department, title, description, color }: EnhancedDepartmentTableProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -410,7 +381,7 @@ export function EnhancedDepartmentTable({ department, title, description, color 
                     <TableCell>
                       <Badge 
                         variant="secondary" 
-                        className={statusColors[project.status as keyof typeof statusColors]}
+                        className={STATUS_COLORS[project.status as keyof typeof statusColors]}
                       >
                         {formatDisplayValue(project.status)}
                       </Badge>
@@ -419,7 +390,7 @@ export function EnhancedDepartmentTable({ department, title, description, color 
                     <TableCell>
                       <Badge 
                         variant="secondary" 
-                        className={stageColors[project.stage as keyof typeof stageColors]}
+                        className={STAGE_COLORS[project.stage as keyof typeof stageColors]}
                       >
                         {formatDisplayValue(project.stage)}
                       </Badge>
@@ -435,7 +406,7 @@ export function EnhancedDepartmentTable({ department, title, description, color 
                     <TableCell>
                       <Badge 
                         variant="secondary" 
-                        className={riskColors[project.risk as keyof typeof riskColors]}
+                        className={RISK_COLORS[project.risk as keyof typeof riskColors]}
                       >
                         {formatDisplayValue(project.risk)}
                       </Badge>

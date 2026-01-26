@@ -38,6 +38,7 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { insertSprintSchema, type Sprint } from "@shared/schema";
+import { TEAM_MEMBERS } from "@/constants/team-members";
 
 // Enhanced form schema for sprint creation/editing
 const sprintFormSchema = insertSprintSchema.extend({
@@ -57,19 +58,6 @@ interface SprintModalProps {
   onSubmit: (data: SprintFormData) => void;
   isLoading: boolean;
 }
-
-// Team members for sprint assignment
-const teamMembers = [
-  "Zara A",
-  "Shaharyar Asgher", 
-  "Tom Austin",
-  "Quang (Brett) Ngo",
-  "Dillon Bong",
-  "Thuy (Sweet) Phan Thanh",
-  "heidi fung",
-  "Sam L",
-  "Hinora"
-];
 
 export function SprintModal({
   isOpen,
@@ -315,7 +303,7 @@ export function SprintModal({
                 Team Members <span className="text-gray-400">(optional)</span>
               </FormLabel>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {teamMembers.map((member) => (
+                {TEAM_MEMBERS.map((member) => (
                   <label
                     key={member}
                     className="flex items-center space-x-2 cursor-pointer p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"

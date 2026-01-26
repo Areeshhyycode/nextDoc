@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { insertProjectSchema, type Project, type InsertProject } from "@shared/schema";
 import { DependencySelector } from "@/components/dependency/dependency-selector";
 import { DependencyIndicator } from "@/components/dependency/dependency-indicator";
+import { TEAM_MEMBERS } from "@/constants/team-members";
 
 interface JiraStyleTaskModalProps {
   isOpen: boolean;
@@ -70,19 +71,6 @@ const taskFormSchema = z.object({
 });
 
 type TaskFormData = z.infer<typeof taskFormSchema>;
-
-// Real team members for the assignee dropdown
-const teamMembers = [
-  "Zara A",
-  "Shaharyar Asgher", 
-  "Tom Austin",
-  "Quang (Brett) Ngo",
-  "Dillon Bong",
-  "Thuy (Sweet) Phan Thanh",
-  "heidi fung",
-  "Sam L",
-  "Hinora"
-];
 
 export function JiraStyleTaskModal({
   isOpen,
@@ -429,7 +417,7 @@ export function JiraStyleTaskModal({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {teamMembers.map((member) => (
+                        {TEAM_MEMBERS.map((member) => (
                           <SelectItem key={member} value={member}>
                             {member}
                           </SelectItem>

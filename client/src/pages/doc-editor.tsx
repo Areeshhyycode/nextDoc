@@ -3,75 +3,68 @@ import { RichTextEditor } from "@/components/docs/components/rich-text-editor";
 import { CommentsPanel } from "@/components/docs/components/comments-panel";
 import { PageStylesPanel } from "@/components/docs/components/page-styles-panel";
 import { SidebarIcons } from "@/components/docs/components/sidebar-icons";
-import {
-  EditorHeader,
-  StarterOptions,
-  EditorLoadingState,
-  useDocument,
-} from "@/components/docs/editor";
+import { NoAccessPage } from "@/components/docs/components/no-access-page";
+import { PermissionBadge } from "@/components/docs/components/permission-badge";
+import { PageTreeSidebar } from "@/components/docs/components/page-tree-sidebar";
+import { EditorHeader, StarterOptions, EditorLoadingState, useDocument, useDocumentPages } from "@/components/docs/editor";
+import { getFontClass, getFontSizeClass, getWidthClass } from "@/components/docs/utils/page-styles";
 import { cn } from "@/lib/utils";
 
 export default function DocEditorPage() {
   const [openPanel, setOpenPanel] = useState<"comments" | "pageStyles" | null>(null);
-
+  const [isPageSidebarOpen, setIsPageSidebarOpen] = useState(false);
   const {
-    title,
-    setTitle,
-    content,
-    setContent,
-    pageStyles,
-    lastSavedAt,
-    isSaving,
-    showStarterOptions,
-    isNewDoc,
-    docId,
-    document,
-    isLoading,
-    openCommentsCount,
-    handleSave,
-    handleStyleChange,
-    saveDocumentForComment,
-    applyTemplate,
-    navigate,
-    isPending,
-    duplicateError,
+    title, setTitle, content, setContent, pageStyles, lastSavedAt, isSaving,
+    showStarterOptions, isNewDoc, docId, document, isLoading, openCommentsCount,
+    handleSave, handleStyleChange, saveDocumentForComment, applyTemplate,
+    navigate, isPending, duplicateError, titleRequiredError, canEdit, hasNoAccess, category,
   } = useDocument();
 
-  // Loading state
-  if (isLoading && !isNewDoc) {
-    return <EditorLoadingState />;
-  }
+  // Use the document pages hook for page tree - uses root document for hierarchy
+  const {
+    pages,
+    totalPagesCount,
+    isLoading: isPagesLoading,
+    addPage,
+    rootDocumentId,
+    rootDocumentTitle,
+  } = useDocumentPages(docId);
 
-  // Style helper functions
-  const getFontClass = () => {
-    const fontMap = {
-      system: "",
-      serif: "font-serif",
-      mono: "font-mono",
-    };
-    return fontMap[pageStyles.fontStyle];
+  const togglePanel = (panel: "comments" | "pageStyles") => setOpenPanel(openPanel === panel ? null : panel);
+
+  const handleAddPage = async (pageTitle: string) => {
+    const newPage = await addPage(pageTitle);
+    if (newPage) {
+      // Navigate to the newly created page
+      navigate(`/docs/${newPage.id}`);
+    }
   };
 
-  const getFontSizeClass = () => {
-    const sizeMap = {
-      small: "text-sm",
-      default: "text-base",
-      large: "text-lg",
-    };
-    return sizeMap[pageStyles.fontSize];
+  const handleNavigateToPage = (pageId: string) => {
+    navigate(`/docs/${pageId}`);
   };
 
-  const getWidthClass = () => {
-    const widthMap = {
-      default: "max-w-4xl",
-      full: "max-w-full px-8",
-    };
-    return widthMap[pageStyles.pageWidth];
-  };
+  if (isLoading && !isNewDoc) return <EditorLoadingState />;
+  if (hasNoAccess) return <NoAccessPage onNavigateBack={() => navigate("/docs")} />;
 
   return (
     <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col relative">
-      {/* Header */}
+      {document?.userPermission && <PermissionBadge permission={document.userPermission} />}
+
+      {/* Page Tree Sidebar - Always shows from root document */}
+      <PageTreeSidebar
+        isOpen={isPageSidebarOpen}
+        onToggle={() => setIsPageSidebarOpen(!isPageSidebarOpen)}
+        documentId={rootDocumentId}
+        documentTitle={rootDocumentTitle || title}
+        pages={pages}
+        isLoading={isPagesLoading}
+        canEdit={canEdit}
+        onAddPage={handleAddPage}
+        onNavigateToPage={handleNavigateToPage}
+        currentPageId={docId || undefined}
+      />
+
       <EditorHeader
         title={title}
         onTitleChange={setTitle}
@@ -82,56 +75,39 @@ export default function DocEditorPage() {
         lastSavedAt={lastSavedAt}
         showLastModified={pageStyles.showLastModified}
         documentUpdatedAt={document?.updatedAt}
-        onSave={handleSave}
+        onSave={canEdit ? handleSave : undefined}
         duplicateError={duplicateError}
+        titleRequiredError={titleRequiredError}
+        category={category}
+        document={document}
+        canEdit={canEdit}
       />
 
-      {/* Editor */}
-      <div className="flex-1 overflow-y-auto">
-        <div className={cn("mx-auto py-8", getWidthClass())}>
-          {/* Starter Options */}
-          {showStarterOptions && isNewDoc && !content && (
-            <StarterOptions onSelectTemplate={applyTemplate} />
+      <div className={cn("flex-1 overflow-y-auto", isPageSidebarOpen && "ml-64")}>
+        <div className={cn("mx-auto py-8", getWidthClass(pageStyles.pageWidth))}>
+          {/* Show starter options for new empty documents */}
+          {showStarterOptions && (
+            <div className="pt-8 pb-4">
+              <StarterOptions onSelectTemplate={applyTemplate} />
+            </div>
           )}
-
-          {/* Rich Text Editor */}
-          <div className={cn(getFontClass(), getFontSizeClass())}>
-            <RichTextEditor content={content} onChange={setContent} />
+          <div className={cn(getFontClass(pageStyles.fontStyle), getFontSizeClass(pageStyles.fontSize))}>
+            <RichTextEditor content={content} onChange={setContent} editable={canEdit} />
           </div>
         </div>
       </div>
 
-      {/* Comments Panel */}
-      <CommentsPanel
-        documentId={docId}
-        isOpen={openPanel === "comments"}
-        onToggle={() =>
-          setOpenPanel(openPanel === "comments" ? null : "comments")
-        }
-        onSaveDocument={saveDocumentForComment}
-      />
-
-      {/* Page Styles Panel */}
-      <PageStylesPanel
-        isOpen={openPanel === "pageStyles"}
-        onToggle={() =>
-          setOpenPanel(openPanel === "pageStyles" ? null : "pageStyles")
-        }
-        styles={pageStyles}
-        onStyleChange={handleStyleChange}
-      />
-
-      {/* Sidebar Icons */}
+      <CommentsPanel documentId={docId} isOpen={openPanel === "comments"} onToggle={() => togglePanel("comments")} onSaveDocument={saveDocumentForComment} />
+      <PageStylesPanel isOpen={openPanel === "pageStyles"} onToggle={() => togglePanel("pageStyles")} styles={pageStyles} onStyleChange={handleStyleChange} />
       <SidebarIcons
         commentsOpen={openPanel === "comments"}
         pageStylesOpen={openPanel === "pageStyles"}
-        onCommentsToggle={() => {
-          setOpenPanel(openPanel === "comments" ? null : "comments");
-        }}
-        onPageStylesToggle={() => {
-          setOpenPanel(openPanel === "pageStyles" ? null : "pageStyles");
-        }}
+        pagesOpen={isPageSidebarOpen}
+        onCommentsToggle={() => togglePanel("comments")}
+        onPageStylesToggle={() => togglePanel("pageStyles")}
+        onPagesToggle={() => setIsPageSidebarOpen(!isPageSidebarOpen)}
         commentsCount={openCommentsCount}
+        pagesCount={totalPagesCount}
         isNewDoc={isNewDoc}
         document={document ? { ...document, owner: null } : null}
       />

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Plus, FileText, Users, Users as UsersIcon, X, Mail, Star } from "lucide-react";
+import { Plus, FileText, Users, Users as UsersIcon, X, Mail, Star, Lock, UserCheck } from "lucide-react";
 import type { DocumentWithOwner } from "@shared/schema";
 import { formatRelativeTime, wasUpdated } from "@/lib/date-utils";
 import { DocSettingsDropdown } from "./doc-settings-dropdown";
+import { ShareDocumentModal } from "./share-document-modal";
+import { useAuth } from "@/hooks/useAuth";
 
 interface DocumentsTableProps {
   documents: DocumentWithOwner[];
@@ -11,9 +13,9 @@ interface DocumentsTableProps {
 
 export function DocumentsTable({ documents }: DocumentsTableProps) {
   return (
-    <div className="bg-white dark:bg-gray-800/30 rounded-lg border border-gray-200 dark:border-gray-700/50 overflow-visible">
+    <div className="bg-white dark:bg-gray-800/30 rounded-xl border-2 border-gray-200/60 dark:border-gray-700/50 overflow-hidden shadow-lg shadow-gray-100/50 dark:shadow-gray-900/50">
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden md:grid md:grid-cols-[1fr_120px_50px_40px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_0.5fr_0.5fr] gap-3 px-4 lg:px-6 py-2.5 bg-gray-50/80 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700/50">
+      <div className="hidden md:grid md:grid-cols-[1fr_120px_50px_40px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_0.5fr_0.5fr] gap-3 px-4 lg:px-6 py-3 bg-gradient-to-b from-gray-50 to-gray-50/50 dark:from-gray-800/80 dark:to-gray-800/40 border-b-2 border-gray-200/60 dark:border-gray-700/50">
         <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
           Name
         </div>
@@ -51,6 +53,49 @@ export function DocumentsTable({ documents }: DocumentsTableProps) {
 
 interface DocumentRowProps {
   doc: DocumentWithOwner;
+}
+
+// Sharing status badge component
+function SharingStatusBadge({ doc, compact = false, isSharedWithMe = false }: { doc: DocumentWithOwner; compact?: boolean; isSharedWithMe?: boolean }) {
+  const isShared = doc.isShared;
+  const shareCount = doc.shareCount || 0;
+
+  // If this document is shared WITH the current user (not owned by them)
+  if (isSharedWithMe) {
+    return (
+      <div className={`flex items-center gap-1 sm:gap-1 ${compact ? '' : 'px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-full bg-green-50 dark:bg-green-900/20'}`}>
+        <UserCheck className={`${compact ? 'h-4 w-4 sm:h-3.5 sm:w-3.5' : 'h-4 w-4 sm:h-3.5 sm:w-3.5'} text-green-500 dark:text-green-400 flex-shrink-0`} />
+        {!compact && (
+          <span className="text-xs sm:text-xs font-medium text-green-600 dark:text-green-400 whitespace-nowrap">
+            Shared with me
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  // If the current user owns this doc and has shared it with others
+  if (isShared) {
+    return (
+      <div className={`flex items-center gap-1 sm:gap-1 ${compact ? '' : 'px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20'}`}>
+        <UsersIcon className={`${compact ? 'h-4 w-4 sm:h-3.5 sm:w-3.5' : 'h-4 w-4 sm:h-3.5 sm:w-3.5'} text-blue-500 dark:text-blue-400 flex-shrink-0`} />
+        {!compact && (
+          <span className="text-xs sm:text-xs font-medium text-blue-600 dark:text-blue-400 whitespace-nowrap">
+            {shareCount > 0 ? `Shared with ${shareCount}` : 'Shared'}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex items-center gap-1 sm:gap-1 ${compact ? '' : 'px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-full bg-gray-100 dark:bg-gray-700/50'}`}>
+      <Lock className={`${compact ? 'h-4 w-4 sm:h-3.5 sm:w-3.5' : 'h-4 w-4 sm:h-3.5 sm:w-3.5'} text-gray-400 dark:text-gray-500 flex-shrink-0`} />
+      {!compact && (
+        <span className="text-xs sm:text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Private</span>
+      )}
+    </div>
+  );
 }
 
 // Owner info popup component
@@ -108,84 +153,92 @@ function OwnerInfoPopup({
 
 function DocumentRow({ doc }: DocumentRowProps) {
   const [showOwnerPopup, setShowOwnerPopup] = useState(false);
-  const [showSharingPopup, setShowSharingPopup] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const { user } = useAuth();
+
+  // Check if this document is shared with me (I'm not the owner)
+  const isSharedWithMe = user?.id !== doc.ownerId;
+  // Only owner can share the document
+  const canShare = user?.id === doc.ownerId;
 
   return (
     <>
       {/* Mobile Layout */}
       <div
-        className="md:hidden flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group relative"
+        className="md:hidden flex flex-col gap-0 px-4 py-4 active:bg-gray-50 dark:active:bg-gray-800/50 active:scale-[0.98] transition-all duration-150 cursor-pointer group relative border-b last:border-b-0 border-gray-100 dark:border-gray-700/30 touch-manipulation"
         data-testid={`doc-row-mobile-${doc.id}`}
       >
         <Link href={`/docs/${doc.id}`} className="absolute inset-0 z-0" />
 
-        {/* Icon */}
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-          doc.category === 'meeting_notes'
-            ? 'bg-green-100 dark:bg-green-900/30'
-            : 'bg-blue-100 dark:bg-blue-900/30'
-        }`}>
-          {doc.category === 'meeting_notes' ? (
-            <Users className="h-4 w-4 text-green-600 dark:text-green-400" />
-          ) : (
-            <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          )}
-        </div>
-
-        {/* Title & Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-gray-900 dark:text-white truncate">
-              {doc.title || 'Untitled'}
-            </span>
-            {doc.isFavorite && (
-              <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {doc.owner?.profilePicture ? (
-              <img
-                src={doc.owner.profilePicture}
-                alt={doc.owner.displayName}
-                className="w-3.5 h-3.5 rounded-full object-cover"
-              />
+        {/* Top Row: Icon, Title, Actions */}
+        <div className="flex items-start gap-3">
+          {/* Icon */}
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border border-gray-100 dark:border-gray-700/50 ${
+            doc.category === 'meeting_notes'
+              ? 'bg-gradient-to-br from-green-100 to-green-50 dark:from-green-900/40 dark:to-green-900/20'
+              : 'bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/40 dark:to-blue-900/20'
+          }`}>
+            {doc.category === 'meeting_notes' ? (
+              <Users className="h-5 w-5 text-green-600 dark:text-green-400" />
             ) : (
-              <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-[7px] font-medium">
-                {doc.owner?.displayName?.charAt(0).toUpperCase() || '?'}
-              </div>
+              <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             )}
-            <span className="text-[10px] text-gray-500 dark:text-gray-400">
-              {formatRelativeTime(doc.createdAt)}
-            </span>
           </div>
-        </div>
 
-        {/* Sharing Icon */}
-        <div className="relative z-10 flex-shrink-0">
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowSharingPopup(!showSharingPopup);
-            }}
-            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-          >
-            <UsersIcon className="h-3.5 w-3.5 text-gray-400" />
-          </button>
-        </div>
+          {/* Title & Meta */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-[13px] font-extrabold text-gray-900 dark:text-white truncate leading-tight">
+                {doc.title || 'Untitled'}
+              </span>
+              {doc.isFavorite && (
+                <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+              <div className="flex items-center gap-1.5">
+                {doc.owner?.profilePicture ? (
+                  <img
+                    src={doc.owner.profilePicture}
+                    alt={doc.owner.displayName}
+                    className="w-4 h-4 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700"
+                  />
+                ) : (
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-[8px] font-bold shadow-sm">
+                    {doc.owner?.displayName?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                )}
+                <span className="font-bold text-gray-700 dark:text-gray-300">{doc.owner?.displayName || 'Unknown'}</span>
+              </div>
+              <span className="text-gray-300 dark:text-gray-600">•</span>
+              <span className="text-gray-500 dark:text-gray-400">{formatRelativeTime(doc.createdAt)}</span>
+            </div>
+          </div>
 
-        {/* Actions - Always visible on mobile */}
-        <div className="relative z-10 flex-shrink-0">
-          <DocSettingsDropdown
-            doc={doc}
-            onOpenSharingModal={() => setShowSharingPopup(true)}
-          />
+          {/* Actions */}
+          <div className="relative z-10 flex items-center gap-1.5 sm:gap-1 flex-shrink-0">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (canShare) setShowShareModal(true);
+              }}
+              className={`p-2.5 sm:p-2 rounded-lg active:bg-gray-100 dark:active:bg-gray-700 transition-colors touch-manipulation min-h-[44px] sm:min-h-0 flex items-center justify-center ${canShare ? 'active:scale-95' : 'cursor-default'}`}
+            >
+              <SharingStatusBadge doc={doc} compact isSharedWithMe={isSharedWithMe} />
+            </button>
+            <DocSettingsDropdown
+              doc={doc}
+              onOpenSharingModal={canShare ? () => setShowShareModal(true) : undefined}
+              isSharedWithMe={isSharedWithMe}
+            />
+          </div>
         </div>
       </div>
 
       {/* Desktop Layout */}
       <div
-        className="hidden md:grid md:grid-cols-[1fr_120px_50px_40px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_0.5fr_0.5fr] gap-3 px-4 lg:px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer items-center group relative"
+        className="hidden md:grid md:grid-cols-[1fr_120px_50px_40px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_0.5fr_0.5fr] gap-3 px-4 lg:px-6 py-3.5 hover:bg-gradient-to-r hover:from-gray-50/80 hover:to-transparent dark:hover:from-gray-800/40 dark:hover:to-transparent transition-all duration-200 cursor-pointer items-center group relative border-b last:border-b-0 border-gray-100/50 dark:border-gray-700/20"
         data-testid={`doc-row-${doc.id}`}
       >
         <Link href={`/docs/${doc.id}`} className="absolute inset-0 z-0" />
@@ -250,7 +303,16 @@ function DocumentRow({ doc }: DocumentRowProps) {
 
         {/* Update date - Hidden on tablet */}
         <div className="hidden lg:block text-sm text-gray-500 dark:text-gray-400">
-          {wasUpdated(doc.createdAt, doc.updatedAt) ? formatRelativeTime(doc.updatedAt) : '—'}
+          {wasUpdated(doc.createdAt, doc.updatedAt) ? (
+            <div className="flex flex-col">
+              <span>{formatRelativeTime(doc.updatedAt)}</span>
+              {doc.lastUpdater && doc.lastUpdater.id !== doc.ownerId && (
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  by {doc.lastUpdater.displayName}
+                </span>
+              )}
+            </div>
+          ) : '—'}
         </div>
 
         {/* Date viewed - Hidden on tablet */}
@@ -258,77 +320,38 @@ function DocumentRow({ doc }: DocumentRowProps) {
           {doc.lastViewedAt ? formatRelativeTime(doc.lastViewedAt) : '—'}
         </div>
 
-        {/* Sharing - with popup */}
+        {/* Sharing - opens modal (only for owner) */}
         <div className="relative z-10">
           <button
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              setShowSharingPopup(!showSharingPopup);
+              if (canShare) setShowShareModal(true);
             }}
-            className="flex items-center gap-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md p-1 transition-colors text-sm text-gray-500 dark:text-gray-400"
+            className={`flex items-center rounded-md p-1.5 sm:p-1 transition-all ${canShare ? 'hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95' : 'cursor-default'}`}
           >
-            <UsersIcon className="h-4 w-4 flex-shrink-0" />
+            <SharingStatusBadge doc={doc} isSharedWithMe={isSharedWithMe} />
           </button>
-
-          {/* Sharing Popup */}
-          {showSharingPopup && doc.owner && (
-            <div
-              className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-4 min-w-[280px]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close button */}
-              <button
-                onClick={() => setShowSharingPopup(false)}
-                className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-
-              <h4 className="font-medium text-gray-900 dark:text-white mb-3">Sharing & Permissions</h4>
-
-              {/* Owner section */}
-              <div className="mb-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Owner</p>
-                <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
-                  {doc.owner.profilePicture ? (
-                    <img
-                      src={doc.owner.profilePicture}
-                      alt={doc.owner.displayName}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
-                      {doc.owner.displayName.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{doc.owner.displayName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{doc.owner.email}</p>
-                  </div>
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">
-                    Owner
-                  </span>
-                </div>
-              </div>
-
-              {/* Invite button */}
-              <button className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2">
-                <UsersIcon className="h-4 w-4" />
-                Invite People
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Actions */}
         <div className="flex items-center justify-end relative z-10">
           <DocSettingsDropdown
             doc={doc}
-            onOpenSharingModal={() => setShowSharingPopup(true)}
+            onOpenSharingModal={canShare ? () => setShowShareModal(true) : undefined}
+            isSharedWithMe={isSharedWithMe}
           />
         </div>
       </div>
+
+      {/* Share Document Modal - Only render for owner */}
+      {canShare && (
+        <ShareDocumentModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          document={doc}
+        />
+      )}
     </>
   );
 }

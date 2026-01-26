@@ -11,12 +11,12 @@ export function TemplateCard({ icon, title, description, onClick }: TemplateCard
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2 sm:py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 rounded-lg sm:rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-all text-left flex-1 min-w-0"
+      className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-2.5 p-3.5 sm:px-3 sm:py-2.5 bg-white dark:bg-gray-800/50 border-2 border-gray-200 dark:border-gray-700/50 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md active:scale-[0.98] transition-all text-left w-full group touch-manipulation"
     >
-      <div className="flex-shrink-0 scale-90 sm:scale-100">{icon}</div>
+      <div className="flex-shrink-0 group-hover:scale-105 transition-transform">{icon}</div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">{title}</h3>
-        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">{description}</p>
+        <h3 className="font-bold text-gray-900 dark:text-white text-[13px] sm:text-sm mb-1 leading-tight">{title}</h3>
+        <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-snug font-medium">{description}</p>
       </div>
     </button>
   );

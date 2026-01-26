@@ -5,7 +5,7 @@ import sanitizeHtml from "sanitize-html";
 import { fileTypeFromBuffer } from "file-type";
 import { storage } from "../storage";
 import { requireAuth } from "../auth";
-import { PDFParse } from "pdf-parse";
+// pdf-parse is dynamically imported to avoid loading test files at startup
 
 // Multer file type
 interface MulterFile {
@@ -172,15 +172,15 @@ async function validateFile(file: MulterFile): Promise<{
 
 // PDF parse helper
 async function parsePDF(buffer: Buffer): Promise<string> {
-  // PDFParse v2 uses class-based API with LoadParameters
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
-  const textResult = await parser.getText();
+  // Dynamic import to avoid pdf-parse loading test files at startup
+  const pdfParse = (await import("pdf-parse")).default;
+  const data = await pdfParse(buffer);
 
-  if (!textResult.text || textResult.text.trim().length === 0) {
+  if (!data.text || data.text.trim().length === 0) {
     throw new FileParseError("PDF appears to be empty or contains only images");
   }
 
-  const content = textResult.text
+  const content = data.text
     .split(/\n{2,}/)
     .filter((para: string) => para.trim().length > 0)
     .map((para: string) => {
@@ -191,9 +191,6 @@ async function parsePDF(buffer: Buffer): Promise<string> {
       return `<p>${trimmed.replace(/\n/g, " ")}</p>`;
     })
     .join("\n");
-
-  // Clean up parser resources
-  await parser.destroy();
 
   return sanitizeHtml(content, sanitizeConfig);
 }

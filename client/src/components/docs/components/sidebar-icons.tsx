@@ -1,4 +1,4 @@
-import { MessageSquare, Plus, Settings } from 'lucide-react';
+import { MessageSquare, Settings, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -12,9 +12,12 @@ import type { DocumentWithOwner } from "@shared/schema";
 interface SidebarIconsProps {
   commentsOpen: boolean;
   pageStylesOpen: boolean;
+  pagesOpen?: boolean;
   onCommentsToggle: () => void;
   onPageStylesToggle: () => void;
+  onPagesToggle?: () => void;
   commentsCount?: number;
+  pagesCount?: number;
   isNewDoc?: boolean;
   document?: DocumentWithOwner | null;
 }
@@ -22,15 +25,53 @@ interface SidebarIconsProps {
 export function SidebarIcons({
   commentsOpen,
   pageStylesOpen,
+  pagesOpen = false,
   onCommentsToggle,
   onPageStylesToggle,
+  onPagesToggle,
   commentsCount = 0,
+  pagesCount = 0,
   isNewDoc = false,
   document
 }: SidebarIconsProps) {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="fixed right-4 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-l-lg shadow-lg py-2">
+        {/* Pages Icon */}
+        {onPagesToggle && !isNewDoc && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onPagesToggle}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center w-12 h-12 transition-all group",
+                    pagesOpen
+                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  )}
+                  data-testid="sidebar-icon-pages"
+                >
+                  <FileText className="h-5 w-5" />
+                  {pagesCount > 0 && (
+                    <span className="absolute top-1 right-1 bg-blue-500 text-white text-[10px] font-semibold rounded-full w-4 h-4 flex items-center justify-center">
+                      {pagesCount > 9 ? '9+' : pagesCount}
+                    </span>
+                  )}
+                  {pagesOpen && (
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 w-0.5 h-8 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
+                Pages
+              </TooltipContent>
+            </Tooltip>
+            {/* Divider */}
+            <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2" />
+          </>
+        )}
+
         {/* Comments Icon */}
         <Tooltip>
           <TooltipTrigger asChild>

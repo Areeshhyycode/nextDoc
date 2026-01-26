@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -20,13 +20,18 @@ const DEFAULT_PAGE_STYLES: PageStyles = {
   showPageOutline: false,
 };
 
+// Extended document type with userPermission
+type DocumentWithPermission = Document & {
+  userPermission?: "owner" | "view" | "edit" | "comment" | "edit_comment";
+};
+
 export function useDocument() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitleInternal] = useState("");
+  const [content, setContentInternal] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,6 +41,8 @@ export function useDocument() {
     show: boolean;
     suggestedTitle?: string;
   }>({ show: false });
+  const [titleRequiredError, setTitleRequiredError] = useState(false);
+  const [hasShownViewOnlyWarning, setHasShownViewOnlyWarning] = useState(false);
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track original values to detect actual changes
@@ -54,11 +61,58 @@ export function useDocument() {
     | "todo_list"
     || "blank";
 
-  // Fetch existing document
-  const { data: document, isLoading } = useQuery<Document>({
+  // Fetch existing document (includes userPermission from backend)
+  const { data: document, isLoading, error: documentError } = useQuery<DocumentWithPermission>({
     queryKey: ["/api/docs", docId],
     enabled: !isNewDoc && !!docId,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 403 (no access) errors
+      if (error?.status === 403) return false;
+      return failureCount < 3;
+    },
   });
+
+  // Check if user has no access (403 error)
+  const hasNoAccess = (documentError as any)?.status === 403;
+
+  // Check if user can edit (owner, edit, or edit_comment permission)
+  const canEdit = !document || document.userPermission === "owner" || document.userPermission === "edit" || document.userPermission === "edit_comment";
+  const isViewOnly = document?.userPermission === "view";
+  const isCommentOnly = document?.userPermission === "comment";
+  const canEditAndComment = document?.userPermission === "edit_comment";
+
+  // Show warning for users without edit permission trying to edit
+  const showNoEditWarning = useCallback(() => {
+    if (!hasShownViewOnlyWarning) {
+      const permissionType = isViewOnly ? "view" : "comment";
+      toast({
+        title: permissionType === "view" ? "Read-Only Document" : "Comment-Only Access",
+        description: permissionType === "view"
+          ? "This document is read-only. You have view permissions and cannot make edits."
+          : "You have comment-only permissions for this document. Editing is restricted, but you can add comments.",
+        variant: "warning",
+      });
+      setHasShownViewOnlyWarning(true);
+    }
+  }, [hasShownViewOnlyWarning, toast, isViewOnly]);
+
+  // Wrapped setTitle that checks permission
+  const setTitle = useCallback((newTitle: string) => {
+    if ((isViewOnly || isCommentOnly) && document) {
+      showNoEditWarning();
+      return; // Don't allow changes
+    }
+    setTitleInternal(newTitle);
+  }, [isViewOnly, isCommentOnly, document, showNoEditWarning]);
+
+  // Wrapped setContent that checks permission
+  const setContent = useCallback((newContent: string) => {
+    if ((isViewOnly || isCommentOnly) && document) {
+      showNoEditWarning();
+      return; // Don't allow changes
+    }
+    setContentInternal(newContent);
+  }, [isViewOnly, isCommentOnly, document, showNoEditWarning]);
 
   // Fetch comments for count badge
   const { data: comments = [] } = useQuery<any[]>({
@@ -73,8 +127,9 @@ export function useDocument() {
   // Load document or template
   useEffect(() => {
     if (document) {
-      setTitle(document.title);
-      setContent(document.content || "");
+      // Use internal setters for initial load (bypass permission check)
+      setTitleInternal(document.title);
+      setContentInternal(document.content || "");
       setTags(document.tags || []);
       setLastSavedAt(document.updatedAt ? new Date(document.updatedAt) : null);
       setShowStarterOptions(false);
@@ -100,10 +155,10 @@ export function useDocument() {
       isNewDoc &&
       (category === "meeting_notes" || category === "project_overview" || category === "todo_list")
     ) {
-      // Use template from templates folder
+      // Use template from templates folder (use internal setters)
       const template = getTemplate(category);
-      setTitle(template.title);
-      setContent(template.content);
+      setTitleInternal(template.title);
+      setContentInternal(template.content);
       setShowStarterOptions(false);
     }
   }, [document, isNewDoc, category]);
@@ -126,12 +181,26 @@ export function useDocument() {
     }
   }, [docId, isNewDoc]);
 
-  // Hide starter options when content is added
+  // Helper to check if content is effectively empty
+  const isContentEmpty = (htmlContent: string) => {
+    if (!htmlContent) return true;
+    if (htmlContent === "<p></p>") return true;
+    // Strip HTML tags and check for actual text content
+    const textContent = htmlContent.replace(/<[^>]*>/g, '').trim();
+    return textContent.length === 0;
+  };
+
+  // Toggle starter options based on content - show when empty, hide when has content
   useEffect(() => {
-    if (content && content !== "<p></p>" && content.trim().length > 0) {
+    if (isContentEmpty(content)) {
+      // Only show starter options for new documents when empty
+      if (isNewDoc) {
+        setShowStarterOptions(true);
+      }
+    } else {
       setShowStarterOptions(false);
     }
-  }, [content]);
+  }, [content, isNewDoc]);
 
   // Create mutation
   const createDocMutation = useMutation({
@@ -229,10 +298,13 @@ export function useDocument() {
     },
   });
 
-  // Clear duplicate error when title changes
+  // Clear duplicate error and title required error when title changes
   useEffect(() => {
     if (duplicateError.show) {
       setDuplicateError({ show: false });
+    }
+    if (titleRequiredError && title.trim()) {
+      setTitleRequiredError(false);
     }
   }, [title]);
 
@@ -284,6 +356,12 @@ export function useDocument() {
   }, [title, content, tags, pageStyles, isNewDoc, docId]);
 
   const handleSave = () => {
+    // Validate title is not empty
+    if (!title.trim()) {
+      setTitleRequiredError(true);
+      return;
+    }
+
     const styleData = {
       fontStyle: pageStyles.fontStyle,
       fontSize: pageStyles.fontSize,
@@ -347,29 +425,100 @@ export function useDocument() {
   };
 
   const applyTemplate = (
-    templateType: "blank" | "meeting" | "todo" | "table"
+    templateType: "blank" | "meeting" | "todo" | "table" | "project_overview"
   ) => {
     setShowStarterOptions(false);
+    // Use internal setters for templates (new docs don't need permission check)
     switch (templateType) {
       case "blank":
-        setContent("<p></p>");
+        setContentInternal("<p></p>");
         break;
       case "meeting":
-        setTitle("Meeting Notes - " + new Date().toLocaleDateString());
-        setContent(
-          `<h2>Attendees</h2><ul><li></li></ul><h2>Agenda</h2><ul><li></li></ul><h2>Discussion</h2><p></p><h2>Action Items</h2><ul><li></li></ul>`
+        setTitleInternal("Meeting Notes - " + new Date().toLocaleDateString());
+        setContentInternal(
+          `<h1>Meeting Notes</h1>
+<p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+<p><strong>Attendees:</strong> </p>
+<hr>
+<h2>Agenda</h2>
+<ol><li>Topic 1</li><li>Topic 2</li><li>Topic 3</li></ol>
+<h2>Discussion Points</h2>
+<h3>Topic 1</h3>
+<p>Notes about topic 1...</p>
+<h3>Topic 2</h3>
+<p>Notes about topic 2...</p>
+<h2>Action Items</h2>
+<ul data-type="taskList">
+<li data-type="taskItem" data-checked="false"><p>Action item 1 - Assigned to: </p></li>
+<li data-type="taskItem" data-checked="false"><p>Action item 2 - Assigned to: </p></li>
+<li data-type="taskItem" data-checked="false"><p>Action item 3 - Assigned to: </p></li>
+</ul>
+<h2>Next Steps</h2>
+<p>Summary of next steps and follow-up items...</p>
+<hr>
+<p><strong>Next Meeting:</strong> </p>`
         );
         break;
       case "todo":
-        setTitle("To-Do List");
-        setContent(
+        setTitleInternal("To-Do List");
+        setContentInternal(
           `<h2>Tasks</h2><ul data-type="taskList"><li data-type="taskItem" data-checked="false"></li></ul>`
         );
         break;
       case "table":
-        setTitle("Data Table");
-        setContent(
-          `<h2>Table</h2><table><tbody><tr><th><p></p></th><th><p></p></th></tr><tr><td><p></p></td><td><p></p></td></tr></tbody></table>`
+        setContentInternal(
+          `<table>
+<tr>
+<th><p>Header 1</p></th>
+<th><p>Header 2</p></th>
+<th><p>Header 3</p></th>
+</tr>
+<tr>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+</tr>
+<tr>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+</tr>
+<tr>
+<td><p></p></td>
+<td><p></p></td>
+<td><p></p></td>
+</tr>
+</table>
+<p></p>`
+        );
+        break;
+      case "project_overview":
+        setTitleInternal("Project Overview");
+        setContentInternal(
+          `<h1>Project Overview</h1>
+<h2>Summary</h2>
+<p>Brief description of the project goals and objectives.</p>
+<h2>Timeline</h2>
+<table><tbody>
+<tr><th><p>Phase</p></th><th><p>Start Date</p></th><th><p>End Date</p></th><th><p>Status</p></th></tr>
+<tr><td><p>Planning</p></td><td><p>-</p></td><td><p>-</p></td><td><p>Not Started</p></td></tr>
+<tr><td><p>Development</p></td><td><p>-</p></td><td><p>-</p></td><td><p>Not Started</p></td></tr>
+<tr><td><p>Testing</p></td><td><p>-</p></td><td><p>-</p></td><td><p>Not Started</p></td></tr>
+</tbody></table>
+<h2>Key Deliverables</h2>
+<ul data-type="taskList">
+<li data-type="taskItem" data-checked="false"><p>Deliverable 1</p></li>
+<li data-type="taskItem" data-checked="false"><p>Deliverable 2</p></li>
+<li data-type="taskItem" data-checked="false"><p>Deliverable 3</p></li>
+</ul>
+<h2>Team Members</h2>
+<table><tbody>
+<tr><th><p>Name</p></th><th><p>Role</p></th><th><p>Responsibilities</p></th></tr>
+<tr><td><p>-</p></td><td><p>Project Lead</p></td><td><p>Overall coordination</p></td></tr>
+<tr><td><p>-</p></td><td><p>Developer</p></td><td><p>Implementation</p></td></tr>
+</tbody></table>
+<h2>Notes</h2>
+<p>Additional notes and comments...</p>`
         );
         break;
     }
@@ -413,6 +562,16 @@ export function useDocument() {
     isLoading,
     openCommentsCount,
     duplicateError,
+    titleRequiredError,
+    category,
+
+    // Permission states
+    canEdit,
+    isViewOnly,
+    isCommentOnly,
+    canEditAndComment,
+    hasNoAccess,
+    userPermission: document?.userPermission,
 
     // Actions
     handleSave,

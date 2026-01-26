@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Plus, Search } from "lucide-react";
 import { type Project } from "@shared/schema";
-// Removed format import since we're using text dates directly
+import { getStatusConfig, getDepartmentColor } from "@/constants/colors";
 
 interface ProjectTableProps {
   projects: Project[];
@@ -48,86 +48,68 @@ export function ProjectTable({ projects, onFilter }: ProjectTableProps) {
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      "Completed": { label: "Completed", variant: "default" as const, className: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400" },
-      "In Progress": { label: "In Progress", variant: "default" as const, className: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400" },
-      "Not Started": { label: "Not Started", variant: "default" as const, className: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400" },
-      "Blocked": { label: "Blocked", variant: "default" as const, className: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400" },
-      "Reviewing": { label: "Reviewing", variant: "default" as const, className: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400" },
-      "Design Approval Needed": { label: "Design Approval Needed", variant: "default" as const, className: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400" },
-      "Temporary Hold": { label: "Temporary Hold", variant: "default" as const, className: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400" },
-    };
-    return statusMap[status as keyof typeof statusMap] || statusMap["Not Started"];
-  };
+  const getStatusBadge = (status: string) => getStatusConfig(status);
 
-  const getDepartmentBadge = (department: string) => {
-    const deptMap = {
-      "Product": { label: "Product", className: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400" },
-      "Design": { label: "Design", className: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400" },
-      "Dev": { label: "Dev", className: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400" },
-      "Marketing & Sales": { label: "Marketing & Sales", className: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400" },
-    };
-    return deptMap[department as keyof typeof deptMap] || deptMap["Product"];
-  };
+  const getDepartmentBadge = (department: string) => getDepartmentColor(department);
 
   return (
     <Card className="border border-gray-200 dark:border-gray-700" data-testid="project-table">
-      <CardHeader className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Project Overview</h3>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
+      <CardHeader className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Project Overview</h3>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
               <Input
                 type="text"
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-64 pl-10"
+                className="w-full pl-10 h-12 sm:h-10 text-[16px] sm:text-sm"
                 data-testid="input-search-projects"
               />
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0" />
             </div>
-            
+
             <Select value={departmentFilter || "all"} onValueChange={handleDepartmentFilter}>
-              <SelectTrigger className="w-40" data-testid="select-department-filter">
+              <SelectTrigger className="w-full sm:w-40 h-12 sm:h-10 text-[15px] sm:text-sm" data-testid="select-department-filter">
                 <SelectValue placeholder="All Departments" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                <SelectItem value="Product">Product</SelectItem>
-                <SelectItem value="Design">Design</SelectItem>
-                <SelectItem value="Dev">Dev</SelectItem>
-                <SelectItem value="Marketing & Sales">Marketing & Sales</SelectItem>
+                <SelectItem value="all" className="text-[15px] sm:text-sm">All Departments</SelectItem>
+                <SelectItem value="Product" className="text-[15px] sm:text-sm">Product</SelectItem>
+                <SelectItem value="Design" className="text-[15px] sm:text-sm">Design</SelectItem>
+                <SelectItem value="Dev" className="text-[15px] sm:text-sm">Dev</SelectItem>
+                <SelectItem value="Marketing & Sales" className="text-[15px] sm:text-sm">Marketing & Sales</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select value={statusFilter || "all"} onValueChange={handleStatusFilter}>
-              <SelectTrigger className="w-32" data-testid="select-status-filter">
+              <SelectTrigger className="w-full sm:w-32 h-12 sm:h-10 text-[15px] sm:text-sm" data-testid="select-status-filter">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="In Progress">In Progress</SelectItem>
-                <SelectItem value="Not Started">Not Started</SelectItem>
-                <SelectItem value="Blocked">Blocked</SelectItem>
-                <SelectItem value="Reviewing">Reviewing</SelectItem>
-                <SelectItem value="Design Approval Needed">Design Approval Needed</SelectItem>
-                <SelectItem value="Temporary Hold">Temporary Hold</SelectItem>
+                <SelectItem value="all" className="text-[15px] sm:text-sm">All Status</SelectItem>
+                <SelectItem value="Completed" className="text-[15px] sm:text-sm">Completed</SelectItem>
+                <SelectItem value="In Progress" className="text-[15px] sm:text-sm">In Progress</SelectItem>
+                <SelectItem value="Not Started" className="text-[15px] sm:text-sm">Not Started</SelectItem>
+                <SelectItem value="Blocked" className="text-[15px] sm:text-sm">Blocked</SelectItem>
+                <SelectItem value="Reviewing" className="text-[15px] sm:text-sm">Reviewing</SelectItem>
+                <SelectItem value="Design Approval Needed" className="text-[15px] sm:text-sm">Design Approval Needed</SelectItem>
+                <SelectItem value="Temporary Hold" className="text-[15px] sm:text-sm">Temporary Hold</SelectItem>
               </SelectContent>
             </Select>
-            
-            <Button className="bg-primary-600 hover:bg-primary-700" data-testid="button-add-project">
-              <Plus className="mr-2 h-4 w-4" />
+
+            <Button className="bg-primary-600 hover:bg-primary-700 h-12 sm:h-10 text-[15px] sm:text-sm" data-testid="button-add-project">
+              <Plus className="mr-2 h-5 w-5 sm:h-4 sm:w-4 flex-shrink-0" />
               Add Project
             </Button>
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -246,6 +228,115 @@ export function ProjectTable({ projects, onFilter }: ProjectTableProps) {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden p-4 space-y-3">
+          {projects.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400" data-testid="text-no-projects">
+              No projects found
+            </div>
+          ) : (
+            projects.map((project) => {
+              const statusBadge = getStatusBadge(project.status);
+              const deptBadge = getDepartmentBadge(project.department);
+              const progress = project.status === 'Completed' ? 100 : project.status === 'In Progress' ? 50 : 0;
+
+              return (
+                <div
+                  key={project.id}
+                  className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-3"
+                  data-testid={`row-project-${project.id}`}
+                >
+                  {/* Project Header */}
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 ${deptBadge.className} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                      <span className="text-base">
+                        {project.department === 'Product' ? '📦' :
+                         project.department === 'Design' ? '🎨' :
+                         project.department === 'Dev' ? '💻' : '📢'}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-1" data-testid={`text-project-title-${project.id}`}>
+                        {project.task}
+                      </h4>
+                      {project.notes && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                          {project.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Status and Department Badges */}
+                  <div className="flex items-center gap-2">
+                    <Badge variant={statusBadge.variant} className={statusBadge.className} data-testid={`badge-project-status-${project.id}`}>
+                      {statusBadge.label}
+                    </Badge>
+                    <Badge variant="secondary" className={deptBadge.className} data-testid={`badge-project-department-${project.id}`}>
+                      {deptBadge.label}
+                    </Badge>
+                  </div>
+
+                  {/* Owner and Due Date */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Owner</div>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+                          style={{ backgroundColor: "#3B82F6" }}
+                        >
+                          {project.owner.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                        </div>
+                        <span className="text-gray-900 dark:text-white truncate" data-testid={`text-project-owner-${project.id}`}>
+                          {project.owner}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Due Date</div>
+                      <div className="text-gray-900 dark:text-white" data-testid={`text-project-due-date-${project.id}`}>
+                        {project.dueDate || '-'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Progress</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white" data-testid={`text-project-progress-${project.id}`}>
+                        {progress}%
+                      </span>
+                    </div>
+                    <Progress
+                      value={progress}
+                      className="h-2"
+                      data-testid={`progress-project-${project.id}`}
+                    />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                    <button
+                      className="flex-1 text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 text-sm font-medium py-2"
+                      data-testid={`button-edit-project-${project.id}`}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="flex-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 text-sm font-medium py-2"
+                      data-testid={`button-view-project-${project.id}`}
+                    >
+                      View
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </CardContent>
     </Card>

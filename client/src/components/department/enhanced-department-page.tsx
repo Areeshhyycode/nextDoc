@@ -40,6 +40,8 @@ import { KanbanBoard } from "@/components/teams/kanban-board";
 import { ViewToggle } from "@/components/teams/view-toggle";
 import { EditStatusesModal } from "@/components/teams/edit-statuses-modal";
 import { getDepartmentContextId } from "@shared/context-helpers";
+import { STATUS_COLORS, RISK_COLORS, STAGE_COLORS } from "@/constants/colors";
+import { formatDisplayValue } from "@/lib/utils";
 
 interface EnhancedDepartmentPageProps {
   department: string;
@@ -50,38 +52,6 @@ interface EnhancedDepartmentPageProps {
 
 type SortField = 'task' | 'status' | 'owner' | 'stage' | 'dueDate' | 'createdAt' | 'risk' | 'completionPercentage';
 type SortDirection = 'asc' | 'desc';
-
-const statusColors = {
-  'Not Started': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-  'In Progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  'Reviewing': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  'Completed': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'Blocked': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  'Design Approval Needed': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  'Temporary Hold': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
-};
-
-const riskColors = {
-  'Low': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'Medium': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  'High': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  '': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-  'none': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
-};
-
-const stageColors = {
-  'Others': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-  'Pre-Event': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  'Day Of': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-  'Post-Event': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'During Event': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
-};
-
-const formatDisplayValue = (value: string) => {
-  return value.split('_').map(word => 
-    word.charAt(0).toUpperCase() + word.slice(1)
-  ).join(' ');
-};
 
 export function EnhancedDepartmentPage({ department, title, description, color }: EnhancedDepartmentPageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -704,7 +674,7 @@ export function EnhancedDepartmentPage({ department, title, description, color }
                           )}
                           <Badge 
                             variant="secondary" 
-                            className={`text-xs ${riskColors[(project.risk || 'none') as keyof typeof riskColors]}`}
+                            className={`text-xs ${RISK_COLORS[(project.risk || 'none') as keyof typeof riskColors]}`}
                           >
                             {project.risk || 'No Risk'}
                           </Badge>
@@ -719,7 +689,7 @@ export function EnhancedDepartmentPage({ department, title, description, color }
                           <div className="flex items-center gap-2 text-xs text-gray-500">
                             <Badge 
                               variant="secondary" 
-                              className={`text-xs ${stageColors[project.stage as keyof typeof stageColors]}`}
+                              className={`text-xs ${STAGE_COLORS[project.stage as keyof typeof stageColors]}`}
                             >
                               {project.stage}
                             </Badge>
@@ -735,7 +705,7 @@ export function EnhancedDepartmentPage({ department, title, description, color }
                     <TableCell>
                       <Badge 
                         variant="secondary" 
-                        className={`text-xs ${statusColors[project.status as keyof typeof statusColors]}`}
+                        className={`text-xs ${STATUS_COLORS[project.status as keyof typeof statusColors]}`}
                       >
                         {project.status}
                       </Badge>
@@ -748,7 +718,7 @@ export function EnhancedDepartmentPage({ department, title, description, color }
                     <TableCell className="hidden xl:table-cell">
                       <Badge 
                         variant="secondary" 
-                        className={`text-xs ${stageColors[project.stage as keyof typeof stageColors]}`}
+                        className={`text-xs ${STAGE_COLORS[project.stage as keyof typeof stageColors]}`}
                       >
                         {project.stage}
                       </Badge>
@@ -763,7 +733,7 @@ export function EnhancedDepartmentPage({ department, title, description, color }
                     <TableCell className="hidden lg:table-cell">
                       <Badge 
                         variant="secondary" 
-                        className={`text-xs ${riskColors[(project.risk || 'none') as keyof typeof riskColors]}`}
+                        className={`text-xs ${RISK_COLORS[(project.risk || 'none') as keyof typeof riskColors]}`}
                       >
                         {project.risk || 'None'}
                       </Badge>

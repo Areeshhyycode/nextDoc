@@ -1,0 +1,40 @@
+.rbc-calendar-custom {
+  font-family: inherit;
+}
+.rbc-calendar-custom .rbc-month-view {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+.rbc-calendar-custom .rbc-header {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+  padding: 0.75rem 0.5rem;
+}
+.rbc-calendar-custom .rbc-date-cell {
+  padding: 0.5rem;
+}
+.rbc-calendar-custom .rbc-today {
+  background-color: #dbeafe;
+}
+.rbc-calendar-custom .rbc-event {
+  border: none;
+  border-radius: 0.25rem;
+  padding: 0;
+}
+.rbc-calendar-custom .rbc-selected {
+  outline: 2px solid #3b82f6;
+}
+
+/* Dark mode styles */
+.dark .rbc-calendar-custom .rbc-header {
+  background-color: #374151;
+  color: white;
+  border-bottom-color: #4b5563;
+}
+.dark .rbc-calendar-custom .rbc-month-view {
+  border-color: #4b5563;
+}
+.dark .rbc-calendar-custom .rbc-today {
+  background-color: #1e3a8a;
+}

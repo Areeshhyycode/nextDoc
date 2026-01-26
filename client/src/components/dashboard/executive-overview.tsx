@@ -2,34 +2,26 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { User, Calendar, Briefcase } from "lucide-react";
 import { type Project } from "@shared/schema";
+import { getStatusConfig } from "@/constants/colors";
 
 interface ExecutiveOverviewProps {
   projects: Project[];
   isLoading: boolean;
 }
 
+// Department badge colors (different from department config colors)
+const DEPARTMENT_BADGE_COLORS: Record<string, string> = {
+  "Product": "bg-blue-600",
+  "Design": "bg-purple-600",
+  "Dev": "bg-green-600",
+  "Marketing & Sales": "bg-orange-600"
+};
+
 export function ExecutiveOverview({ projects, isLoading }: ExecutiveOverviewProps) {
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      "Completed": { variant: "default" as const, className: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400" },
-      "In Progress": { variant: "secondary" as const, className: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400" },
-      "Not Started": { variant: "outline" as const, className: "bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-400" },
-      "Blocked": { variant: "destructive" as const, className: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400" },
-      "Reviewing": { variant: "secondary" as const, className: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400" },
-      "Design Approval Needed": { variant: "secondary" as const, className: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400" },
-      "Temporary Hold": { variant: "outline" as const, className: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400" },
-    };
-    return statusMap[status as keyof typeof statusMap] || statusMap["Not Started"];
-  };
+  const getStatusBadge = (status: string) => getStatusConfig(status);
 
   const getDepartmentColor = (department: string) => {
-    const deptColors = {
-      "Product": "bg-blue-600",
-      "Design": "bg-purple-600", 
-      "Dev": "bg-green-600",
-      "Marketing & Sales": "bg-orange-600"
-    };
-    return deptColors[department as keyof typeof deptColors] || "bg-gray-600";
+    return DEPARTMENT_BADGE_COLORS[department] || "bg-gray-600";
   };
 
   const getCompletionPercentage = (project: Project) => {
@@ -48,10 +40,10 @@ export function ExecutiveOverview({ projects, isLoading }: ExecutiveOverviewProp
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-8">
-        <div className="animate-pulse space-y-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-8">
+        <div className="animate-pulse space-y-3 sm:space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div key={i} className="h-14 sm:h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
           ))}
         </div>
       </div>
@@ -69,68 +61,68 @@ export function ExecutiveOverview({ projects, isLoading }: ExecutiveOverviewProp
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+      <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
           Project Overview by Department
         </h3>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
           All active projects across departments
         </p>
       </div>
 
-      <div className="p-6 space-y-8">
+      <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
         {Object.entries(projectsByDepartment).map(([department, deptProjects]) => (
-          <div key={department} className="space-y-4">
+          <div key={department} className="space-y-3 sm:space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
-                <div className={`w-3 h-3 rounded-full mr-3 ${getDepartmentColor(department)}`}></div>
-                {department} ({deptProjects.length} tasks)
+              <h4 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white flex items-center">
+                <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full mr-2 sm:mr-3 flex-shrink-0 ${getDepartmentColor(department)}`}></div>
+                <span className="truncate">{department} ({deptProjects.length} tasks)</span>
               </h4>
             </div>
-            
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {deptProjects.map((project) => {
                 const statusBadge = getStatusBadge(project.status);
                 const completion = getCompletionPercentage(project);
                 
                 return (
-                  <div 
-                    key={project.id} 
-                    className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  <div
+                    key={project.id}
+                    className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 sm:p-4 hover:shadow-md active:bg-gray-50 dark:active:bg-gray-700 transition-all"
                     data-testid={`project-card-${project.id}`}
                   >
-                    <div className="space-y-3">
+                    <div className="space-y-2.5 sm:space-y-3">
                       <div>
-                        <h5 className="font-medium text-gray-900 dark:text-white truncate" title={project.task}>
+                        <h5 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate" title={project.task}>
                           {project.task}
                         </h5>
-                        <Badge variant={statusBadge.variant} className={`${statusBadge.className} mt-2`}>
+                        <Badge variant={statusBadge.variant} className={`${statusBadge.className} mt-1.5 sm:mt-2 text-xs`}>
                           {project.status}
                         </Badge>
                       </div>
 
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <User className="h-4 w-4 mr-2" />
-                        <span>{project.owner}</span>
+                      <div className="flex items-center text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 flex-shrink-0" />
+                        <span className="truncate">{project.owner}</span>
                       </div>
 
                       {project.dueDate && (
-                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                          <Calendar className="h-4 w-4 mr-2" />
+                        <div className="flex items-center text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                          <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 flex-shrink-0" />
                           <span>{project.dueDate}</span>
                         </div>
                       )}
 
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
                           <span className="text-gray-600 dark:text-gray-400">Progress</span>
                           <span className="font-medium text-gray-900 dark:text-white">{completion}%</span>
                         </div>
-                        <Progress value={completion} className="h-2" />
+                        <Progress value={completion} className="h-1.5 sm:h-2" />
                       </div>
 
                       {project.notes && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                           {project.notes}
                         </div>
                       )}
@@ -143,10 +135,10 @@ export function ExecutiveOverview({ projects, isLoading }: ExecutiveOverviewProp
         ))}
 
         {projects.length === 0 && (
-          <div className="text-center py-12">
-            <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">No projects found</h3>
-            <p className="text-gray-500 dark:text-gray-400">
+          <div className="text-center py-8 sm:py-12">
+            <Briefcase className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">No projects found</h3>
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1">
               Projects will appear here once they are created in department tabs.
             </p>
           </div>

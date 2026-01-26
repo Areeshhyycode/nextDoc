@@ -1,7 +1,10 @@
-import { ChevronRight, AlertTriangle } from "lucide-react";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
+import { DocumentBreadcrumb } from "../components/document-breadcrumb";
+import { EditorTopActions } from "../components/editor-top-actions";
+import type { DocumentWithOwner } from "@shared/schema";
 
 interface EditorHeaderProps {
   title: string;
@@ -13,8 +16,14 @@ interface EditorHeaderProps {
   lastSavedAt: Date | null;
   showLastModified: boolean;
   documentUpdatedAt?: Date | string | null;
-  onSave: () => void;
+  onSave?: () => void;
   duplicateError?: { show: boolean; suggestedTitle?: string };
+  titleRequiredError?: boolean;
+  category?: "blank" | "meeting_notes" | "project_overview" | "todo_list" | null;
+  document?: DocumentWithOwner | null;
+  canEdit?: boolean;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
 }
 
 export function EditorHeader({
@@ -29,6 +38,12 @@ export function EditorHeader({
   documentUpdatedAt,
   onSave,
   duplicateError,
+  titleRequiredError,
+  category,
+  document,
+  canEdit = true,
+  onDuplicate,
+  onDelete,
 }: EditorHeaderProps) {
   // Use duplicateError from parent (from save attempt)
   const showWarning = duplicateError?.show || false;
@@ -42,19 +57,25 @@ export function EditorHeader({
 
   return (
     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-      {/* Breadcrumb */}
-      <div className="px-6 pt-3 pb-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-        <button
-          onClick={onNavigateBack}
-          className="hover:text-gray-900 dark:hover:text-white transition-colors"
-          data-testid="breadcrumb-docs"
-        >
-          Docs
-        </button>
-        <ChevronRight className="h-4 w-4" />
-        <span className="text-gray-900 dark:text-white font-medium truncate max-w-md">
-          {title || "Untitled Document"}
-        </span>
+      {/* Breadcrumb and Top Actions */}
+      <div className="flex items-center justify-between">
+        <DocumentBreadcrumb
+          title={title}
+          isNewDoc={isNewDoc}
+          category={category}
+          onNavigateBack={onNavigateBack}
+        />
+        <div className="px-4 py-2">
+          <EditorTopActions
+            document={document || null}
+            isNewDoc={isNewDoc}
+            canEdit={canEdit}
+            onClose={onNavigateBack}
+            onDuplicate={onDuplicate}
+            onDelete={onDelete}
+            onRename={onTitleChange}
+          />
+        </div>
       </div>
 
       {/* Title and Actions */}
@@ -64,13 +85,22 @@ export function EditorHeader({
             <Input
               value={title}
               onChange={(e) => onTitleChange(e.target.value)}
-              placeholder="Untitled"
+              placeholder={titleRequiredError ? "Enter a title..." : "Untitled"}
               className={`text-2xl font-bold border-0 focus-visible:ring-0 px-0 h-auto py-1 placeholder:text-gray-400 ${
+                titleRequiredError ? "placeholder:text-red-400 dark:placeholder:text-red-500" :
                 showWarning ? "text-amber-600 dark:text-amber-500" : ""
               }`}
               data-testid="input-doc-title"
             />
           </div>
+
+          {/* Title Required Warning */}
+          {titleRequiredError && (
+            <div className="flex items-center gap-2 mt-1.5 text-sm text-red-600 dark:text-red-400">
+              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+              <span>Please enter a document title</span>
+            </div>
+          )}
 
           {/* Duplicate Name Warning */}
           {showWarning && (

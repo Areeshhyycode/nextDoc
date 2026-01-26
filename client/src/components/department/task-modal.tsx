@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { type Project, type InsertProject, insertProjectSchema } from "@shared/schema";
+import { TEAM_MEMBERS } from "@/constants/team-members";
 
 const taskFormSchema = insertProjectSchema.extend({
   completionPercentage: z.number().min(0).max(100).default(0),
@@ -43,24 +44,12 @@ interface TaskModalProps {
 
 const statusOptions = [
   "Not Started",
-  "In Progress", 
+  "In Progress",
   "Reviewing",
   "Design Approval Needed",
   "Completed",
   "Blocked",
   "Temporary Hold"
-];
-
-const ownerOptions = [
-  "Zara A",
-  "Shaharyar Asgher", 
-  "Tom Austin",
-  "Quang (Brett) Ngo",
-  "Dillon Bong",
-  "Thuy (Sweet) Phan Thanh",
-  "heidi fung",
-  "Sam L",
-  "Hinora"
 ];
 
 export function TaskModal({ isOpen, onClose, onSubmit, project, department, isLoading }: TaskModalProps) {
@@ -168,7 +157,7 @@ export function TaskModal({ isOpen, onClose, onSubmit, project, department, isLo
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {ownerOptions.map((owner) => (
+                          {TEAM_MEMBERS.map((owner) => (
                             <SelectItem key={owner} value={owner}>
                               {owner}
                             </SelectItem>

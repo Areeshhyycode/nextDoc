@@ -7,11 +7,12 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Users, Package, Palette, Code, Megaphone, Shield, Target, Calendar, 
+import {
+  Users, Package, Palette, Code, Megaphone, Shield, Target, Calendar,
   Briefcase, TrendingUp, Award, Zap, Rocket, Heart, Star, Coffee,
   CheckCircle, Circle
 } from "lucide-react";
+import { COLOR_PRESETS, DEFAULT_COLOR } from "@/constants/color-presets";
 
 interface CreateTeamModalProps {
   open: boolean;
@@ -37,23 +38,10 @@ const AVAILABLE_ICONS = [
   { name: "Coffee", Icon: Coffee },
 ];
 
-const AVAILABLE_COLORS = [
-  { name: "Blue", value: "#3B82F6" },
-  { name: "Purple", value: "#9333EA" },
-  { name: "Green", value: "#10B981" },
-  { name: "Orange", value: "#F97316" },
-  { name: "Red", value: "#EF4444" },
-  { name: "Pink", value: "#EC4899" },
-  { name: "Indigo", value: "#6366F1" },
-  { name: "Teal", value: "#14B8A6" },
-  { name: "Yellow", value: "#F59E0B" },
-  { name: "Cyan", value: "#06B6D4" },
-];
-
 export function CreateTeamModal({ open, onOpenChange }: CreateTeamModalProps) {
   const [name, setName] = useState("");
   const [selectedIcon, setSelectedIcon] = useState("Users");
-  const [selectedColor, setSelectedColor] = useState("#3B82F6");
+  const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
   const [description, setDescription] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -83,7 +71,7 @@ export function CreateTeamModal({ open, onOpenChange }: CreateTeamModalProps) {
   const resetForm = () => {
     setName("");
     setSelectedIcon("Users");
-    setSelectedColor("#3B82F6");
+    setSelectedColor(DEFAULT_COLOR);
     setDescription("");
   };
 
@@ -178,7 +166,7 @@ export function CreateTeamModal({ open, onOpenChange }: CreateTeamModalProps) {
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Team color</Label>
             <div className="grid grid-cols-10 gap-2">
-              {AVAILABLE_COLORS.map(({ name: colorName, value }) => (
+              {COLOR_PRESETS.map(({ name: colorName, value }) => (
                 <button
                   key={colorName}
                   type="button"

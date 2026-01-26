@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Edit, Trash2, Calendar, User } from "lucide-react";
 import { type Project } from "@shared/schema";
+import { getStatusConfig } from "@/constants/colors";
 
 interface DepartmentTableProps {
   projects: Project[];
@@ -24,18 +25,7 @@ export function DepartmentTable({
   color 
 }: DepartmentTableProps) {
   
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      "Completed": { variant: "default" as const, className: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400" },
-      "In Progress": { variant: "secondary" as const, className: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400" },
-      "Not Started": { variant: "outline" as const, className: "bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-400" },
-      "Blocked": { variant: "destructive" as const, className: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400" },
-      "Reviewing": { variant: "secondary" as const, className: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400" },
-      "Design Approval Needed": { variant: "secondary" as const, className: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400" },
-      "Temporary Hold": { variant: "outline" as const, className: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400" },
-    };
-    return statusMap[status as keyof typeof statusMap] || statusMap["Not Started"];
-  };
+  const getStatusBadge = (status: string) => getStatusConfig(status);
 
   const getCompletionPercentage = (project: Project) => {
     if (project.completionPercentage !== null && project.completionPercentage !== undefined) {

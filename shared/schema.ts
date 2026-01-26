@@ -170,6 +170,7 @@ export const kanbanColumns = pgTable("kanban_columns", {
 
 export const commentStatusEnum = pgEnum("comment_status", ["open", "resolved"]);
 export const docCategoryEnum = pgEnum("doc_category", ["blank", "meeting_notes", "project_overview"]);
+export const docSharingPermissionEnum = pgEnum("doc_sharing_permission", ["view", "edit", "comment", "edit_comment"]);
 export const projectPrivacyEnum = pgEnum("project_privacy", ["private", "everyone", "specific_people"]);
 export const projectLayoutEnum = pgEnum("project_layout", ["list", "kanban", "gantt"]);
 export const projectStatusEnum = pgEnum("project_status", ["at_risk", "on_track", "off_track", "on_hold", "completed"]);
@@ -184,6 +185,9 @@ export const documents = pgTable("documents", {
   category: docCategoryEnum("category").notNull().default("blank"),
   tags: text("tags").array().default(sql`ARRAY[]::text[]`),
   isFavorite: boolean("is_favorite").default(false),
+  // Page hierarchy support
+  parentDocumentId: varchar("parent_document_id"), // Reference to parent document (null for root documents)
+  pageOrder: integer("page_order").default(0), // Order within parent's children
   // Page style preferences
   fontStyle: text("font_style").default("system"),
   fontSize: text("font_size").default("default"),
@@ -195,9 +199,26 @@ export const documents = pgTable("documents", {
   showSubtitle: boolean("show_subtitle").default(false),
   showLastModified: boolean("show_last_modified").default(true),
   showPageOutline: boolean("show_page_outline").default(false),
+  isShared: boolean("is_shared").default(false),
+  isProtected: boolean("is_protected").default(false), // When true, only owner can edit
+  // Public link sharing
+  publicLinkEnabled: boolean("public_link_enabled").default(false),
+  publicLinkToken: varchar("public_link_token"), // Unique token for public access
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
   lastViewedAt: timestamp("last_viewed_at"),
+  lastUpdatedBy: varchar("last_updated_by"), // User ID of who last updated the document
+});
+
+// Document sharing - tracks who a document is shared with
+export const documentShares = pgTable("document_shares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(),
+  userId: varchar("user_id").notNull(), // User the document is shared with
+  permission: docSharingPermissionEnum("permission").notNull().default("view"),
+  sharedBy: varchar("shared_by").notNull(), // User who shared the document
+  sharedAt: timestamp("shared_at").default(sql`CURRENT_TIMESTAMP`),
+  lastViewedAt: timestamp("last_viewed_at"), // When this user last viewed the document
 });
 
 export const documentComments = pgTable("document_comments", {
@@ -326,6 +347,12 @@ export const kanbanColumnsRelations = relations(kanbanColumns, ({ one }) => ({
 export const documentsRelations = relations(documents, ({ one, many }) => ({
   owner: one(users, { fields: [documents.ownerId], references: [users.id] }),
   comments: many(documentComments),
+  parentDocument: one(documents, {
+    fields: [documents.parentDocumentId],
+    references: [documents.id],
+    relationName: "parentChild"
+  }),
+  childPages: many(documents, { relationName: "parentChild" }),
 }));
 
 export const documentCommentsRelations = relations(documentComments, ({ one }) => ({
@@ -390,6 +417,13 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
 });
 
 export const updateDocumentSchema = insertDocumentSchema.partial();
+
+export const insertDocumentShareSchema = createInsertSchema(documentShares).omit({
+  id: true,
+  sharedAt: true,
+});
+
+export const updateDocumentShareSchema = insertDocumentShareSchema.partial();
 
 export const insertDocumentCommentSchema = createInsertSchema(documentComments).omit({
   id: true,
@@ -481,6 +515,27 @@ export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type Document = typeof documents.$inferSelect;
 export type UpdateDocument = z.infer<typeof updateDocumentSchema>;
 
+export type InsertDocumentShare = z.infer<typeof insertDocumentShareSchema>;
+export type DocumentShare = typeof documentShares.$inferSelect;
+export type UpdateDocumentShare = z.infer<typeof updateDocumentShareSchema>;
+
+// Shared user info for display purposes
+export type SharedUserInfo = {
+  id: string;
+  displayName: string;
+  email: string;
+  profilePicture: string | null;
+  permission: "view" | "edit" | "comment" | "edit_comment";
+};
+
+// Last updater info for display purposes
+export type LastUpdaterInfo = {
+  id: string;
+  displayName: string;
+  email: string;
+  profilePicture: string | null;
+};
+
 // Document with owner info for display purposes
 export type DocumentWithOwner = Document & {
   owner: {
@@ -489,6 +544,18 @@ export type DocumentWithOwner = Document & {
     email: string;
     profilePicture: string | null;
   } | null;
+  sharedWith?: SharedUserInfo[];
+  shareCount?: number;
+  lastUpdater?: LastUpdaterInfo | null; // Info about who last updated the document
+};
+
+// Page tree node for hierarchical display
+export type PageTreeNode = {
+  id: string;
+  title: string;
+  pageOrder: number;
+  parentDocumentId: string | null;
+  children: PageTreeNode[];
 };
 export type InsertDocumentComment = z.infer<typeof insertDocumentCommentSchema>;
 export type DocumentComment = typeof documentComments.$inferSelect;
