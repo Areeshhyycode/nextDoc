@@ -1,10 +1,18 @@
-import { useState, useEffect, useRef } from "react";
+/**
+ * Share Document Modal - ClickUp Style
+ *
+ * Clean, modern document sharing modal with:
+ * - Public link toggle
+ * - Export dropdown
+ * - User search with inline permissions
+ * - Owner and shared users sections
+ */
+
+import { useState, useEffect, useRef, useDeferredValue, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,13 +23,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Search, Trash2, Check, Loader2, Globe, Copy, Download, FileText, FileCode, FileType, File, FileJson, FileSpreadsheet, ChevronDown, X } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Users,
+  Search,
+  Trash2,
+  Check,
+  Loader2,
+  Globe,
+  Copy,
+  Download,
+  FileText,
+  FileCode,
+  FileType,
+  FileSpreadsheet,
+  File,
+  ChevronDown,
+  X,
+} from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { DocumentWithOwner } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -58,105 +76,134 @@ interface DocumentShare {
   };
 }
 
-export function ShareDocumentModal({ isOpen, onClose, document }: ShareDocumentModalProps) {
+interface PublicLinkResponse {
+  publicLinkEnabled: boolean;
+  publicLinkToken: string | null;
+  publicLinkExpiresAt: string | null;
+  publicLinkCreatedAt: string | null;
+  publicLinkUrl: string | null;
+}
+
+const PERMISSION_CONFIG: Record<PermissionType, { label: string; shortLabel: string }> = {
+  view: { label: "Can view", shortLabel: "Can view" },
+  edit: { label: "Can edit", shortLabel: "Can edit" },
+  comment: { label: "Can comment", shortLabel: "Can comment" },
+  edit_comment: { label: "Edit & comment", shortLabel: "Edit & comment" },
+};
+
+// Avatar colors for users without profile pictures
+const AVATAR_COLORS = [
+  "bg-emerald-500",
+  "bg-blue-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-orange-500",
+  "bg-cyan-500",
+];
+
+function getAvatarColor(name: string): string {
+  const index = name.charCodeAt(0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+}
+
+export function ShareDocumentModal({ isOpen, onClose, document: doc }: ShareDocumentModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
   const [permission, setPermission] = useState<PermissionType>("view");
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const searchDropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
   // Search users
   const { data: searchResults = [], isLoading: isSearching } = useQuery<UserSearchResult[]>({
-    queryKey: ["/api/users/search", searchQuery],
+    queryKey: ["/api/users/search", deferredSearchQuery],
     queryFn: async () => {
-      if (searchQuery.length < 2) return [];
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`, {
+      if (deferredSearchQuery.length < 2) return [];
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(deferredSearchQuery)}`, {
         credentials: "include"
       });
       if (!response.ok) throw new Error("Failed to search users");
       return response.json();
     },
-    enabled: searchQuery.length >= 2,
-    staleTime: 0,
-    gcTime: 0,
+    enabled: deferredSearchQuery.length >= 2,
+    staleTime: 30_000,
   });
 
   // Get existing shares
   const { data: shares = [], isLoading: isLoadingShares } = useQuery<DocumentShare[]>({
-    queryKey: [`/api/docs/${document.id}/shares`],
+    queryKey: [`/api/docs/${doc.id}/shares`],
     enabled: isOpen,
   });
 
-  // Share document mutation
+  // Share mutation
   const shareMutation = useMutation({
-    mutationFn: async (data: { userEmail: string; permission: string }) => {
-      return apiRequest("POST", `/api/docs/${document.id}/shares`, data);
+    mutationFn: async (data: { userId: string; permission: string }) => {
+      return apiRequest("POST", `/api/docs/${doc.id}/shares`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/docs/${document.id}/shares`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/docs"] });
-      setSelectedUser(null);
+      queryClient.invalidateQueries({ queryKey: [`/api/docs/${doc.id}/shares`] });
+      queryClient.invalidateQueries({ queryKey: ['docs', 'list'] });
       setSearchQuery("");
-      toast({ title: "Document shared", description: "User has been added to the document." });
+      setShowSearchResults(false);
+      toast({ title: "Shared successfully" });
     },
     onError: (error: any) => {
-      toast({ title: "Failed to share", description: error.message || "Could not share the document.", variant: "destructive" });
+      toast({ title: "Failed to share", description: error.message, variant: "destructive" });
     },
   });
 
-  // Update permission mutation
+  // Update permission
   const updatePermissionMutation = useMutation({
     mutationFn: async ({ userId, permission }: { userId: string; permission: string }) => {
-      return apiRequest("PATCH", `/api/docs/${document.id}/shares/${userId}`, { permission });
+      return apiRequest("PATCH", `/api/docs/${doc.id}/shares/${userId}`, { permission });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/docs/${document.id}/shares`] });
-      toast({ title: "Permission updated", description: "User permission has been updated." });
+      queryClient.invalidateQueries({ queryKey: [`/api/docs/${doc.id}/shares`] });
+      toast({ title: "Permission updated" });
     },
   });
 
-  // Remove share mutation
+  // Remove share
   const removeShareMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return apiRequest("DELETE", `/api/docs/${document.id}/shares/${userId}`);
+      return apiRequest("DELETE", `/api/docs/${doc.id}/shares/${userId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/docs/${document.id}/shares`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/docs"] });
-      toast({ title: "Access removed", description: "User no longer has access to this document." });
+      queryClient.invalidateQueries({ queryKey: [`/api/docs/${doc.id}/shares`] });
+      queryClient.invalidateQueries({ queryKey: ['docs', 'list'] });
+      toast({ title: "Access removed" });
     },
   });
 
   // Public link state
-  const [publicLinkEnabled, setPublicLinkEnabled] = useState(document.publicLinkEnabled || false);
-  const [publicLinkToken, setPublicLinkToken] = useState(document.publicLinkToken || "");
+  const [publicLinkEnabled, setPublicLinkEnabled] = useState(doc.publicLinkEnabled || false);
+  const [publicLinkToken, setPublicLinkToken] = useState(doc.publicLinkToken || "");
 
   useEffect(() => {
-    setPublicLinkEnabled(document.publicLinkEnabled || false);
-    setPublicLinkToken(document.publicLinkToken || "");
-  }, [document.publicLinkEnabled, document.publicLinkToken]);
+    setPublicLinkEnabled(doc.publicLinkEnabled || false);
+    setPublicLinkToken(doc.publicLinkToken || "");
+  }, [doc.publicLinkEnabled, doc.publicLinkToken]);
 
-  // Toggle public link mutation
+  // Toggle public link
   const togglePublicLinkMutation = useMutation({
-    mutationFn: async (enabled: boolean) => {
-      const response = await apiRequest("PATCH", `/api/docs/${document.id}/public-link`, { enabled });
+    mutationFn: async (enabled: boolean): Promise<PublicLinkResponse> => {
+      const response = await apiRequest("PATCH", `/api/docs/${doc.id}/public-link`, { enabled });
       return response.json();
     },
     onSuccess: (data) => {
       setPublicLinkEnabled(data.publicLinkEnabled);
       setPublicLinkToken(data.publicLinkToken || "");
-      queryClient.invalidateQueries({ queryKey: ["/api/docs"] });
+      queryClient.invalidateQueries({ queryKey: ['docs', 'list'] });
       toast({
         title: data.publicLinkEnabled ? "Public link enabled" : "Public link disabled",
-        description: data.publicLinkEnabled ? "Anyone with the link can now view this document." : "The public link has been disabled.",
       });
-    },
-    onError: () => {
-      toast({ title: "Failed to update public link", variant: "destructive" });
     },
   });
 
@@ -165,265 +212,258 @@ export function ShareDocumentModal({ isOpen, onClose, document }: ShareDocumentM
   const copyPublicLink = () => {
     navigator.clipboard.writeText(publicLink);
     setLinkCopied(true);
-    toast({ title: "Link copied", description: "Public link copied to clipboard." });
+    toast({ title: "Link copied!" });
     setTimeout(() => setLinkCopied(false), 2000);
   };
 
-  const handleShare = () => {
-    if (selectedUser) {
-      shareMutation.mutate({ userEmail: selectedUser.email, permission });
-    }
-  };
-
-  const handleSelectUser = (user: UserSearchResult) => {
-    setSelectedUser(user);
-    setSearchQuery(user.email);
-    setShowSearchResults(false);
-  };
-
-  // Export state
+  // Export
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async (format: ExportFormat) => {
     setIsExporting(true);
     try {
-      let content = document.content || "";
+      let content = doc.content || "";
       if (!content) {
-        const response = await fetch(`/api/docs/${document.id}`, { credentials: "include" });
+        const response = await fetch(`/api/docs/${doc.id}`, { credentials: "include" });
         if (!response.ok) throw new Error("Failed to fetch document");
         const fullDoc = await response.json();
         content = fullDoc.content || "";
       }
-      exportDocument(format, document.title || "Untitled", content, {
-        author: document.owner?.displayName,
-        createdAt: document.createdAt?.toString(),
+      exportDocument(format, doc.title || "Untitled", content, {
+        author: doc.owner?.displayName,
+        createdAt: doc.createdAt?.toString(),
       });
-      toast({
-        title: "Export started",
-        description: format === "pdf" ? "Your PDF will open in a new window for printing/saving." : `Document exported as ${format.toUpperCase()}.`,
-      });
+      toast({ title: `Exported as ${format.toUpperCase()}` });
     } catch {
-      toast({ title: "Export failed", description: "Could not export the document. Please try again.", variant: "destructive" });
+      toast({ title: "Export failed", variant: "destructive" });
     } finally {
       setIsExporting(false);
     }
   };
 
-  // Close search dropdown on outside click
+  // Filter users
+  const alreadySharedIds = shares.map(s => s.userId);
+  const availableUsers = searchResults.filter(
+    user => !alreadySharedIds.includes(user.id) && user.id !== doc.owner?.id
+  );
+
+  // Handle user selection
+  const handleSelectUser = (user: UserSearchResult) => {
+    shareMutation.mutate({ userId: user.id, permission });
+  };
+
+  // Keyboard navigation
+  const handleSearchKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSearchResults || availableUsers.length === 0) return;
+
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        setHighlightedIndex(prev => prev < availableUsers.length - 1 ? prev + 1 : 0);
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        setHighlightedIndex(prev => prev > 0 ? prev - 1 : availableUsers.length - 1);
+        break;
+      case "Enter":
+        event.preventDefault();
+        if (highlightedIndex >= 0 && availableUsers[highlightedIndex]) {
+          handleSelectUser(availableUsers[highlightedIndex]);
+        }
+        break;
+      case "Escape":
+        event.preventDefault();
+        setShowSearchResults(false);
+        break;
+    }
+  }, [showSearchResults, availableUsers, highlightedIndex, permission]);
+
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [searchResults]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
         setShowSearchResults(false);
       }
-    };
-
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setShowSearchResults(false);
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+        setExportDropdownOpen(false);
       }
     };
-
-    if (showSearchResults) {
+    if (showSearchResults || exportDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleEscapeKey);
-
-      return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
-        document.removeEventListener("keydown", handleEscapeKey);
-      };
+      return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [showSearchResults]);
-
-  // Keyboard navigation for selected user
-  useEffect(() => {
-    const handleEnterKey = (event: KeyboardEvent) => {
-      if (event.key === "Enter" && selectedUser && !shareMutation.isPending) {
-        handleShare();
-      }
-    };
-
-    if (selectedUser) {
-      document.addEventListener("keydown", handleEnterKey);
-      return () => {
-        document.removeEventListener("keydown", handleEnterKey);
-      };
-    }
-  }, [selectedUser, shareMutation.isPending, handleShare]);
+  }, [showSearchResults, exportDropdownOpen]);
 
   useEffect(() => {
     if (!isOpen) {
       setSearchQuery("");
-      setSelectedUser(null);
       setShowSearchResults(false);
       setLinkCopied(false);
+      setHighlightedIndex(-1);
+      setExportDropdownOpen(false);
     }
   }, [isOpen]);
 
-  // Filter out already shared users and owner
-  const alreadySharedIds = shares.map(s => s.userId);
-  const availableUsers = searchResults.filter(
-    user => !alreadySharedIds.includes(user.id) && user.id !== document.owner?.id
-  );
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[420px] p-4 sm:p-4 max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="pb-3 sm:pb-2 flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2.5 sm:gap-2 text-base sm:text-base">
-            <Users className="h-5 w-5 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
-            <span className="truncate">Share "{document.title}"</span>
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="w-[440px] max-w-[calc(100vw-2rem)] p-0 gap-0 overflow-hidden bg-[#1e1e1e] border-[#333] rounded-xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#333]">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-blue-400" />
+            <h2 className="text-[15px] font-semibold text-white">
+              Share "{doc.title}"
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-[#333] rounded-md transition-colors"
+          >
+            <X className="h-4 w-4 text-gray-400" />
+          </button>
+        </div>
 
-        <div className="space-y-3 overflow-y-auto flex-1 pr-1">
-          {/* Public Link & Export Row - Stack on mobile */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-2">
-            <div className="flex-1 flex items-center justify-between p-3 sm:p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 min-h-[48px] sm:min-h-0">
-              <div className="flex items-center gap-2.5 sm:gap-2">
-                <Globe className="h-5 w-5 sm:h-3.5 sm:w-3.5 text-gray-500 flex-shrink-0" />
-                <span className="text-[15px] sm:text-xs font-medium text-gray-900 dark:text-white">Public link</span>
-              </div>
-              <Switch
-                checked={publicLinkEnabled}
-                onCheckedChange={(checked) => togglePublicLinkMutation.mutate(checked)}
-                disabled={togglePublicLinkMutation.isPending}
-                className="scale-90 sm:scale-75"
-              />
+        <div className="px-5 py-4 space-y-5">
+          {/* Public Link Toggle */}
+          <div className="flex items-center justify-between py-2 px-3 bg-[#2a2a2a] rounded-lg">
+            <div className="flex items-center gap-3">
+              <Globe className="h-4 w-4 text-gray-400" />
+              <span className="text-sm text-white">Public link</span>
             </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-12 sm:h-8 gap-2 sm:gap-1 text-[15px] sm:text-xs w-full sm:w-auto justify-center font-medium"
-                  disabled={isExporting}
-                >
-                  {isExporting ? <Loader2 className="h-4 w-4 sm:h-3 sm:w-3 animate-spin" /> : <Download className="h-4 w-4 sm:h-3 sm:w-3" />}
-                  Export
-                  <ChevronDown className="h-3.5 w-3.5 sm:h-2.5 sm:w-2.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44 sm:w-36">
-                <DropdownMenuItem onClick={() => handleExport("pdf")} className="gap-2.5 sm:gap-2 text-[15px] sm:text-xs py-3 sm:py-2 cursor-pointer">
-                  <FileText className="h-5 w-5 sm:h-3.5 sm:w-3.5 text-red-500 flex-shrink-0" /> PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("word")} className="gap-2.5 sm:gap-2 text-[15px] sm:text-xs py-3 sm:py-2 cursor-pointer">
-                  <FileSpreadsheet className="h-5 w-5 sm:h-3.5 sm:w-3.5 text-blue-600 flex-shrink-0" /> Word
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("rtf")} className="gap-2.5 sm:gap-2 text-[15px] sm:text-xs py-3 sm:py-2 cursor-pointer">
-                  <FileType className="h-5 w-5 sm:h-3.5 sm:w-3.5 text-purple-500 flex-shrink-0" /> RTF
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("html")} className="gap-2.5 sm:gap-2 text-[15px] sm:text-xs py-3 sm:py-2 cursor-pointer">
-                  <FileCode className="h-5 w-5 sm:h-3.5 sm:w-3.5 text-orange-500 flex-shrink-0" /> HTML
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("markdown")} className="gap-2.5 sm:gap-2 text-[15px] sm:text-xs py-3 sm:py-2 cursor-pointer">
-                  <FileCode className="h-5 w-5 sm:h-3.5 sm:w-3.5 text-teal-500 flex-shrink-0" /> Markdown
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("text")} className="gap-2.5 sm:gap-2 text-[15px] sm:text-xs py-3 sm:py-2 cursor-pointer">
-                  <File className="h-5 w-5 sm:h-3.5 sm:w-3.5 text-gray-500 flex-shrink-0" /> Text
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("json")} className="gap-2.5 sm:gap-2 text-[15px] sm:text-xs py-3 sm:py-2 cursor-pointer">
-                  <FileJson className="h-5 w-5 sm:h-3.5 sm:w-3.5 text-yellow-600 flex-shrink-0" /> JSON
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Switch
+              checked={publicLinkEnabled}
+              onCheckedChange={(checked) => togglePublicLinkMutation.mutate(checked)}
+              disabled={togglePublicLinkMutation.isPending}
+              className="data-[state=checked]:bg-blue-500"
+            />
           </div>
 
-          {/* Public link URL */}
+          {/* Public Link URL (shown when enabled) */}
           {publicLinkEnabled && publicLink && (
             <div className="flex items-center gap-2">
               <Input
                 value={publicLink}
                 readOnly
-                className="text-xs sm:text-xs h-11 sm:h-7 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400"
+                className="flex-1 h-9 text-xs bg-[#2a2a2a] border-[#444] text-gray-300 font-mono"
               />
               <Button
                 size="sm"
-                variant={linkCopied ? "default" : "outline"}
+                variant="outline"
                 onClick={copyPublicLink}
-                className={`h-11 sm:h-7 px-3 sm:px-2 flex-shrink-0 transition-all ${linkCopied ? 'bg-green-500 hover:bg-green-600 text-white' : ''}`}
+                className={`h-9 px-3 border-[#444] ${linkCopied ? 'bg-green-600 border-green-600 text-white' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'}`}
               >
-                {linkCopied ? (
-                  <>
-                    <Check className="h-4 w-4 sm:h-3 sm:w-3 sm:mr-1" />
-                    <span className="hidden sm:inline text-xs">Copied!</span>
-                  </>
-                ) : (
-                  <Copy className="h-4 w-4 sm:h-3 sm:w-3" />
-                )}
+                {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           )}
 
-          {/* Search section */}
-          <div className="space-y-2.5 sm:space-y-2">
-            <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-1.5">
-              <div className="relative flex-1 order-1 sm:order-1" ref={searchDropdownRef}>
-                <Search className="absolute left-3 sm:left-2 top-1/2 -translate-y-1/2 h-5 w-5 sm:h-3 sm:w-3 text-gray-400 pointer-events-none z-10" />
+          {/* Export Button */}
+          <div className="flex justify-end relative" ref={exportDropdownRef}>
+            <button
+              onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
+              disabled={isExporting}
+              className="flex items-center gap-2 h-9 px-3 text-sm bg-[#2a2a2a] border border-[#444] text-white rounded-md hover:bg-[#333] disabled:opacity-50 transition-colors"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Export
+              <ChevronDown className={`h-3 w-3 transition-transform ${exportDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {exportDropdownOpen && (
+              <div className="absolute top-full right-0 mt-1.5 w-48 bg-[#252525] border border-[#3a3a3a] rounded-lg shadow-xl z-50" style={{ maxHeight: '96px', overflowY: 'auto' }}>
+                {[
+                  { format: "docx" as ExportFormat, label: "Word Document", ext: ".docx", Icon: FileSpreadsheet, color: "text-blue-400" },
+                  { format: "docm" as ExportFormat, label: "Word Macro Doc", ext: ".docm", Icon: FileSpreadsheet, color: "text-blue-400" },
+                  { format: "word" as ExportFormat, label: "Word 97-2003", ext: ".doc", Icon: FileSpreadsheet, color: "text-blue-400" },
+                  { format: "dotm" as ExportFormat, label: "Word Macro Tmpl", ext: ".dotm", Icon: FileSpreadsheet, color: "text-blue-400" },
+                  { format: "dotx" as ExportFormat, label: "Word Template", ext: ".dotx", Icon: FileSpreadsheet, color: "text-blue-400" },
+                  { format: "dot" as ExportFormat, label: "Word 97-2003 Tmpl", ext: ".dot", Icon: FileSpreadsheet, color: "text-blue-400" },
+                  { format: "pdf" as ExportFormat, label: "PDF Document", ext: ".pdf", Icon: FileText, color: "text-red-400" },
+                  { format: "xps" as ExportFormat, label: "XPS Document", ext: ".xps", Icon: FileText, color: "text-indigo-400" },
+                  { format: "mht" as ExportFormat, label: "Single File Web", ext: ".mht", Icon: FileCode, color: "text-orange-400" },
+                  { format: "html" as ExportFormat, label: "Web Page", ext: ".htm", Icon: FileCode, color: "text-orange-400" },
+                  { format: "rtf" as ExportFormat, label: "Rich Text Format", ext: ".rtf", Icon: FileType, color: "text-purple-400" },
+                  { format: "text" as ExportFormat, label: "Plain Text", ext: ".txt", Icon: File, color: "text-gray-400" },
+                  { format: "wordxml" as ExportFormat, label: "Word XML", ext: ".xml", Icon: FileCode, color: "text-green-400" },
+                  { format: "strict" as ExportFormat, label: "Strict Open XML", ext: ".docx", Icon: FileSpreadsheet, color: "text-blue-400" },
+                  { format: "odt" as ExportFormat, label: "OpenDocument", ext: ".odt", Icon: FileSpreadsheet, color: "text-emerald-400" },
+                ].map((item) => (
+                  <button
+                    key={item.format}
+                    onClick={() => { handleExport(item.format); setExportDropdownOpen(false); }}
+                    className="w-full flex items-center gap-2 px-2.5 py-1 text-left hover:bg-[#333] transition-colors"
+                  >
+                    <item.Icon className={`h-3 w-3 ${item.color} flex-shrink-0`} />
+                    <span className="text-[11px] text-gray-300 truncate flex-1">{item.label}</span>
+                    <span className="text-[9px] text-gray-600 flex-shrink-0">{item.ext}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Share with People Section */}
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+              Share with people
+            </p>
+
+            {/* Search Input with Permission Dropdown */}
+            <div className="flex gap-2" ref={searchDropdownRef}>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <Input
                   ref={searchInputRef}
-                  placeholder="Search members..."
+                  placeholder="Search by name or email..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    setSelectedUser(null);
                     setShowSearchResults(true);
                   }}
                   onFocus={() => setShowSearchResults(true)}
-                  className="pl-10 sm:pl-7 pr-10 sm:pr-7 h-12 sm:h-7 text-[15px] sm:text-xs"
+                  onKeyDown={handleSearchKeyDown}
+                  className="pl-9 h-10 bg-[#2a2a2a] border-[#444] text-white placeholder:text-gray-500"
                 />
-                {/* Clear button */}
-                {searchQuery && (
-                  <button
-                    onClick={() => {
-                      setSearchQuery("");
-                      setSelectedUser(null);
-                      setShowSearchResults(false);
-                      searchInputRef.current?.focus();
-                    }}
-                    className="absolute right-3 sm:right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                  >
-                    <X className="h-3.5 w-3.5 sm:h-3 sm:w-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-                  </button>
-                )}
 
-                {/* Search results dropdown */}
+                {/* Search Results Dropdown */}
                 {showSearchResults && searchQuery.length >= 2 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg sm:rounded-md shadow-lg z-50 max-h-48 sm:max-h-32 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#2a2a2a] border border-[#444] rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
                     {isSearching ? (
-                      <div className="p-3 sm:p-2 text-center text-sm sm:text-xs text-gray-500">
-                        <Loader2 className="h-4 w-4 sm:h-3 sm:w-3 animate-spin inline mr-1" />
+                      <div className="p-3 text-center text-sm text-gray-400">
+                        <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
                         Searching...
                       </div>
                     ) : availableUsers.length === 0 ? (
-                      <div className="p-4 sm:p-3 text-center">
-                        <p className="text-sm sm:text-xs text-gray-500 dark:text-gray-400 mb-2">
-                          {searchResults.length > 0 ? "All users already have access" : "No users found"}
-                        </p>
-                        {searchResults.length === 0 && (
-                          <p className="text-xs sm:text-[10px] text-gray-400 dark:text-gray-500">
-                            Try searching by name or email
-                          </p>
-                        )}
+                      <div className="p-4 text-center text-sm text-gray-400">
+                        No users found
                       </div>
                     ) : (
-                      availableUsers.map((user) => (
+                      availableUsers.map((user, index) => (
                         <button
                           key={user.id}
                           onClick={() => handleSelectUser(user)}
-                          className="w-full flex items-center gap-2.5 sm:gap-2 p-3 sm:p-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-left active:bg-gray-100 dark:active:bg-gray-600"
+                          onMouseEnter={() => setHighlightedIndex(index)}
+                          className={`w-full flex items-center gap-3 p-3 text-left transition-colors ${
+                            highlightedIndex === index ? "bg-[#333]" : "hover:bg-[#333]"
+                          }`}
                         >
                           {user.profilePicture ? (
-                            <img src={user.profilePicture} alt={user.displayName} className="w-8 h-8 sm:w-6 sm:h-6 rounded-full object-cover flex-shrink-0" />
+                            <img src={user.profilePicture} alt="" className="w-8 h-8 rounded-full object-cover" />
                           ) : (
-                            <div className="w-8 h-8 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm sm:text-xs flex-shrink-0">
+                            <div className={`w-8 h-8 rounded-full ${getAvatarColor(user.displayName)} flex items-center justify-center text-white text-sm font-medium`}>
                               {user.displayName.charAt(0).toUpperCase()}
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm sm:text-xs font-medium text-gray-900 dark:text-white truncate">{user.displayName}</p>
-                            <p className="text-xs sm:text-[10px] text-gray-500 truncate">{user.email}</p>
+                            <p className="text-sm font-medium text-white truncate">{user.displayName}</p>
+                            <p className="text-xs text-gray-400 truncate">{user.email}</p>
                           </div>
                         </button>
                       ))
@@ -433,99 +473,97 @@ export function ShareDocumentModal({ isOpen, onClose, document }: ShareDocumentM
               </div>
 
               <Select value={permission} onValueChange={(val: PermissionType) => setPermission(val)}>
-                <SelectTrigger className="w-full sm:w-[100px] h-12 sm:h-7 text-[15px] sm:text-xs order-2 sm:order-2 font-medium">
-                  <SelectValue />
+                <SelectTrigger className="w-[120px] h-10 bg-[#2a2a2a] border-[#444] text-white">
+                  <SelectValue>{PERMISSION_CONFIG[permission].shortLabel}</SelectValue>
                 </SelectTrigger>
-                <SelectContent align="end" className="min-w-[160px] sm:min-w-[140px]">
-                  <SelectItem value="view" className="text-[15px] sm:text-xs py-3 sm:py-2 cursor-pointer">
-                    Can view
-                  </SelectItem>
-                  <SelectItem value="edit" className="text-[15px] sm:text-xs py-3 sm:py-2 cursor-pointer">
-                    Can edit
-                  </SelectItem>
-                  <SelectItem value="comment" className="text-[15px] sm:text-xs py-3 sm:py-2 cursor-pointer">
-                    Can comment
-                  </SelectItem>
-                  <SelectItem value="edit_comment" className="text-[15px] sm:text-xs py-3 sm:py-2 cursor-pointer">
-                    Edit & comment
-                  </SelectItem>
+                <SelectContent className="bg-[#2a2a2a] border-[#444]">
+                  {(Object.entries(PERMISSION_CONFIG) as [PermissionType, { label: string; shortLabel: string }][]).map(
+                    ([value, { label }]) => (
+                      <SelectItem key={value} value={value} className="text-white hover:bg-[#333] cursor-pointer">
+                        {label}
+                      </SelectItem>
+                    )
+                  )}
                 </SelectContent>
               </Select>
-            </div>
 
-            {/* Selected user preview */}
-            {selectedUser && (
-              <div className="flex items-center justify-between p-3 sm:p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg sm:rounded-md">
-                <div className="flex items-center gap-2.5 sm:gap-1.5 flex-1 min-w-0 mr-2">
-                  {selectedUser.profilePicture ? (
-                    <img src={selectedUser.profilePicture} alt={selectedUser.displayName} className="w-8 h-8 sm:w-5 sm:h-5 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-8 h-8 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm sm:text-[10px] flex-shrink-0">
-                      {selectedUser.displayName.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <span className="text-[15px] sm:text-xs font-medium text-gray-900 dark:text-white truncate">{selectedUser.displayName}</span>
-                </div>
-                <Button size="sm" onClick={handleShare} disabled={shareMutation.isPending} className="h-10 sm:h-6 text-[15px] sm:text-xs px-4 sm:px-2 flex-shrink-0 font-medium">
-                  {shareMutation.isPending ? <Loader2 className="h-4 w-4 sm:h-3 sm:w-3 animate-spin" /> : <><Check className="h-4 w-4 sm:h-3 sm:w-3 mr-1.5 sm:mr-0.5" />Share</>}
-                </Button>
-              </div>
-            )}
+              <Button
+                onClick={() => {
+                  if (availableUsers.length > 0) {
+                    // If a result is highlighted, use that; otherwise use the first result
+                    const userToSelect = highlightedIndex >= 0
+                      ? availableUsers[highlightedIndex]
+                      : availableUsers[0];
+                    handleSelectUser(userToSelect);
+                  }
+                }}
+                disabled={shareMutation.isPending || searchQuery.length < 2 || availableUsers.length === 0}
+                className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {shareMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Invite"
+                )}
+              </Button>
+            </div>
           </div>
 
-          {/* Owner section */}
-          <div>
-            <p className="text-xs sm:text-[10px] text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-1 font-medium uppercase tracking-wide">Owner</p>
-            <div className="flex items-center gap-2.5 sm:gap-2 p-2.5 sm:p-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg sm:rounded-md">
-              {document.owner?.profilePicture ? (
-                <img src={document.owner.profilePicture} alt={document.owner.displayName} className="w-8 h-8 sm:w-6 sm:h-6 rounded-full object-cover flex-shrink-0" />
+          {/* Owner Section */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Owner</p>
+            <div className="flex items-center gap-3 p-3 bg-[#2a2a2a] rounded-lg">
+              {doc.owner?.profilePicture ? (
+                <img src={doc.owner.profilePicture} alt="" className="w-9 h-9 rounded-full object-cover" />
               ) : (
-                <div className="w-8 h-8 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm sm:text-xs flex-shrink-0">
-                  {document.owner?.displayName?.charAt(0).toUpperCase() || '?'}
+                <div className={`w-9 h-9 rounded-full ${getAvatarColor(doc.owner?.displayName || 'U')} flex items-center justify-center text-white text-sm font-medium`}>
+                  {doc.owner?.displayName?.charAt(0).toUpperCase() || '?'}
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm sm:text-xs font-medium text-gray-900 dark:text-white truncate">{document.owner?.displayName || 'Unknown'}</p>
+                <p className="text-sm font-medium text-white truncate">{doc.owner?.displayName || 'Unknown'}</p>
               </div>
-              <span className="text-xs sm:text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 sm:px-1.5 py-1 sm:py-0.5 rounded font-medium flex-shrink-0">Owner</span>
+              <span className="text-xs font-medium text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-md">
+                Owner
+              </span>
             </div>
           </div>
 
-          {/* Shared with section */}
+          {/* Shared With Section */}
           {isLoadingShares ? (
-            <div>
-              <p className="text-xs sm:text-[10px] text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-1 font-medium uppercase tracking-wide">Shared with</p>
-              <div className="space-y-1.5 sm:space-y-1">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Shared with</p>
+              <div className="space-y-2">
                 {[1, 2].map((i) => (
-                  <div key={i} className="flex items-center gap-2.5 sm:gap-2 p-2.5 sm:p-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg sm:rounded-md animate-pulse">
-                    <div className="w-8 h-8 sm:w-6 sm:h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="h-3 sm:h-2.5 bg-gray-200 dark:bg-gray-600 rounded w-24" />
+                  <div key={i} className="flex items-center gap-3 p-3 bg-[#2a2a2a] rounded-lg animate-pulse">
+                    <div className="w-9 h-9 rounded-full bg-[#444]" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-[#444] rounded w-24" />
                     </div>
-                    <div className="w-20 sm:w-[80px] h-8 sm:h-6 bg-gray-200 dark:bg-gray-600 rounded flex-shrink-0" />
                   </div>
                 ))}
               </div>
             </div>
           ) : shares.length > 0 ? (
-            <div>
-              <p className="text-xs sm:text-[10px] text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-1 font-medium uppercase tracking-wide">Shared with ({shares.length})</p>
-              <div className="space-y-1.5 sm:space-y-1 max-h-40 sm:max-h-28 overflow-y-auto">
-                {shares.map((share, index) => (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                Shared with ({shares.length})
+              </p>
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {shares.map((share) => (
                   <div
                     key={share.id}
-                    className="flex items-center gap-2.5 sm:gap-2 p-2.5 sm:p-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg sm:rounded-md group animate-in fade-in slide-in-from-top-2"
-                    style={{ animationDelay: `${index * 50}ms` }}
+                    className="flex items-center gap-3 p-3 bg-[#2a2a2a] rounded-lg group"
                   >
                     {share.user?.profilePicture ? (
-                      <img src={share.user.profilePicture} alt={share.user.displayName} className="w-8 h-8 sm:w-6 sm:h-6 rounded-full object-cover flex-shrink-0" />
+                      <img src={share.user.profilePicture} alt="" className="w-9 h-9 rounded-full object-cover" />
                     ) : (
-                      <div className="w-8 h-8 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-white text-sm sm:text-xs flex-shrink-0">
+                      <div className={`w-9 h-9 rounded-full ${getAvatarColor(share.user?.displayName || 'U')} flex items-center justify-center text-white text-sm font-medium`}>
                         {share.user?.displayName?.charAt(0).toUpperCase() || '?'}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm sm:text-xs font-medium text-gray-900 dark:text-white truncate">{share.user?.displayName || 'Unknown'}</p>
+                      <p className="text-sm font-medium text-white truncate">{share.user?.displayName || 'Unknown'}</p>
                     </div>
                     <Select
                       value={share.permission}
@@ -533,39 +571,30 @@ export function ShareDocumentModal({ isOpen, onClose, document }: ShareDocumentM
                         updatePermissionMutation.mutate({ userId: share.userId, permission: val });
                       }}
                     >
-                      <SelectTrigger className="w-24 sm:w-20 h-9 sm:h-7 text-xs flex-shrink-0 transition-all hover:border-blue-400 dark:hover:border-blue-500">
-                        <SelectValue />
+                      <SelectTrigger className="w-[110px] h-8 text-xs bg-transparent border-[#444] text-gray-300 hover:border-[#555]">
+                        <SelectValue>{PERMISSION_CONFIG[share.permission].shortLabel}</SelectValue>
                       </SelectTrigger>
-                      <SelectContent align="end" className="min-w-[140px]">
-                        <SelectItem value="view" className="text-sm sm:text-xs py-2.5 sm:py-2 cursor-pointer">
-                          Can view
-                        </SelectItem>
-                        <SelectItem value="edit" className="text-sm sm:text-xs py-2.5 sm:py-2 cursor-pointer">
-                          Can edit
-                        </SelectItem>
-                        <SelectItem value="comment" className="text-sm sm:text-xs py-2.5 sm:py-2 cursor-pointer">
-                          Can comment
-                        </SelectItem>
-                        <SelectItem value="edit_comment" className="text-sm sm:text-xs py-2.5 sm:py-2 cursor-pointer">
-                          Edit & comment
-                        </SelectItem>
+                      <SelectContent className="bg-[#2a2a2a] border-[#444]">
+                        {(Object.entries(PERMISSION_CONFIG) as [PermissionType, { label: string; shortLabel: string }][]).map(
+                          ([value, { label }]) => (
+                            <SelectItem key={value} value={value} className="text-white hover:bg-[#333] cursor-pointer text-xs">
+                              {label}
+                            </SelectItem>
+                          )
+                        )}
                       </SelectContent>
                     </Select>
                     <button
                       onClick={() => removeShareMutation.mutate(share.userId)}
-                      className="p-1.5 sm:p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all flex-shrink-0"
+                      className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded opacity-0 group-hover:opacity-100 transition-all"
                     >
-                      <Trash2 className="h-4 w-4 sm:h-3 sm:w-3" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
               </div>
             </div>
-          ) : (
-            <div className="text-center py-4 sm:py-2 text-sm sm:text-xs text-gray-500 dark:text-gray-400">
-              Not shared with anyone yet.
-            </div>
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

@@ -8,6 +8,8 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
 import { Placeholder } from '@tiptap/extension-placeholder';
+import { FontFamily } from '@tiptap/extension-font-family';
+import { TextStyle } from '@tiptap/extension-text-style';
 
 export interface EditorExtensionsOptions {
   editable: boolean;
@@ -17,8 +19,12 @@ export function createEditorExtensions({ editable }: EditorExtensionsOptions) {
   return [
     StarterKit.configure({
       heading: {
-        levels: [1, 2, 3, 4],
+        levels: [1, 2, 3, 4, 5, 6],
       },
+    }),
+    TextStyle,
+    FontFamily.configure({
+      types: ['textStyle'],
     }),
     Underline.extend({ name: 'customUnderline' }).configure({
       HTMLAttributes: {

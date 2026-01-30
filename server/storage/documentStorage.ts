@@ -16,17 +16,38 @@ import { db } from "../db";
 import { eq, and, desc, sql, inArray, isNull, asc } from "drizzle-orm";
 import { wasDeleted, buildOwnerObject, escapeRegex, fetchLastUpdaterMap, getLastUpdaterIds } from "./helpers";
 
+// Pagination options for document queries
+export interface PaginationOptions {
+  page?: number;
+  limit?: number;
+  sortField?: 'created_at' | 'updated_at' | 'title' | 'last_viewed_at';
+  sortDirection?: 'asc' | 'desc';
+  search?: string;
+}
+
+// Paginated response with metadata
+export interface PaginatedDocuments {
+  documents: DocumentWithOwner[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
 export interface IDocumentStorage {
   // Documents
   getAllDocuments(): Promise<DocumentWithOwner[]>;
   getDocument(id: string): Promise<Document | undefined>;
   getDocumentByPublicToken(token: string): Promise<Document | undefined>;
   getDocumentsByOwner(ownerId: string): Promise<DocumentWithOwner[]>;
+  getDocumentsByOwnerPaginated(ownerId: string, options?: PaginationOptions): Promise<PaginatedDocuments>;
   getDocumentsByCategory(category: 'blank' | 'meeting_notes' | 'project_overview'): Promise<DocumentWithOwner[]>;
   createDocument(doc: InsertDocument): Promise<Document>;
   updateDocument(id: string, updates: UpdateDocument, updateTimestamp?: boolean): Promise<Document | undefined>;
   deleteDocument(id: string): Promise<boolean>;
   updateDocumentLastViewed(id: string): Promise<Document | undefined>;
+  getShareCounts(documentIds: string[]): Promise<Map<string, number>>;
 
   // Document Name Uniqueness
   isDocumentNameUnique(title: string, excludeDocId?: string): Promise<boolean>;
@@ -39,6 +60,8 @@ export interface IDocumentStorage {
   getDocumentShares(documentId: string): Promise<any[]>;
   getDocumentShareForUser(documentId: string, userId: string): Promise<{ permission: "view" | "edit" | "comment" | "edit_comment" } | null>;
   getDocumentsSharedWithUser(userId: string): Promise<DocumentWithOwner[]>;
+  getDocumentsSharedWithUserPaginated(userId: string, options?: PaginationOptions): Promise<PaginatedDocuments>;
+  getAllUserDocumentsPaginated(userId: string, options?: PaginationOptions): Promise<PaginatedDocuments>;
   updateDocumentSharePermission(documentId: string, userId: string, permission: "view" | "edit" | "comment" | "edit_comment"): Promise<any>;
   updateSharedUserLastViewed(documentId: string, userId: string): Promise<any>;
 
@@ -110,11 +133,89 @@ export class DocumentStorage implements IDocumentStorage {
     const lastUpdaterIds = getLastUpdaterIds(rows.map(r => r.doc));
     const lastUpdaterMap = await fetchLastUpdaterMap(lastUpdaterIds);
 
+    // Get share counts for all documents
+    const documentIds = rows.map(r => r.doc.id);
+    const shareCounts = await this.getShareCounts(documentIds);
+
     return rows.map(row => ({
       ...row.doc,
       owner: buildOwnerObject(row),
       lastUpdater: row.doc.lastUpdatedBy ? lastUpdaterMap.get(row.doc.lastUpdatedBy) || null : null,
+      shareCount: shareCounts.get(row.doc.id) || 0,
     }));
+  }
+
+  async getDocumentsByOwnerPaginated(ownerId: string, options: PaginationOptions = {}): Promise<PaginatedDocuments> {
+    const {
+      page = 1,
+      limit = 20,
+      sortField = 'updated_at',
+      sortDirection = 'desc',
+      search = ''
+    } = options;
+
+    const offset = (page - 1) * limit;
+
+    // Build sort order
+    const sortColumn = sortField === 'created_at' ? documents.createdAt
+      : sortField === 'title' ? documents.title
+      : sortField === 'last_viewed_at' ? documents.lastViewedAt
+      : documents.updatedAt;
+    const orderFn = sortDirection === 'asc' ? asc : desc;
+
+    // Build where conditions
+    const whereConditions = [eq(documents.ownerId, ownerId)];
+    if (search) {
+      whereConditions.push(sql`LOWER(${documents.title}) LIKE ${'%' + search.toLowerCase() + '%'}`);
+    }
+
+    // Get total count
+    const [countResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(documents)
+      .where(and(...whereConditions));
+    const total = Number(countResult?.count || 0);
+
+    // Get paginated documents
+    const rows = await db
+      .select({
+        doc: documents,
+        ownerId: users.id,
+        ownerDisplayName: users.displayName,
+        ownerEmail: users.email,
+        ownerProfilePicture: users.profilePicture,
+      })
+      .from(documents)
+      .leftJoin(users, eq(documents.ownerId, users.id))
+      .where(and(...whereConditions))
+      .orderBy(orderFn(sortColumn))
+      .limit(limit)
+      .offset(offset);
+
+    const lastUpdaterIds = getLastUpdaterIds(rows.map(r => r.doc));
+    const lastUpdaterMap = await fetchLastUpdaterMap(lastUpdaterIds);
+
+    // Get share counts for all documents
+    const documentIds = rows.map(r => r.doc.id);
+    const shareCounts = await this.getShareCounts(documentIds);
+
+    const docs = rows.map(row => ({
+      ...row.doc,
+      owner: buildOwnerObject(row),
+      lastUpdater: row.doc.lastUpdatedBy ? lastUpdaterMap.get(row.doc.lastUpdatedBy) || null : null,
+      shareCount: shareCounts.get(row.doc.id) || 0,
+    }));
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      documents: docs,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasMore: page < totalPages,
+    };
   }
 
   async getDocumentsByCategory(category: 'blank' | 'meeting_notes'): Promise<DocumentWithOwner[]> {
@@ -134,10 +235,15 @@ export class DocumentStorage implements IDocumentStorage {
     const lastUpdaterIds = getLastUpdaterIds(rows.map(r => r.doc));
     const lastUpdaterMap = await fetchLastUpdaterMap(lastUpdaterIds);
 
+    // Get share counts for all documents
+    const documentIds = rows.map(r => r.doc.id);
+    const shareCounts = await this.getShareCounts(documentIds);
+
     return rows.map(row => ({
       ...row.doc,
       owner: buildOwnerObject(row),
       lastUpdater: row.doc.lastUpdatedBy ? lastUpdaterMap.get(row.doc.lastUpdatedBy) || null : null,
+      shareCount: shareCounts.get(row.doc.id) || 0,
     }));
   }
 
@@ -284,6 +390,24 @@ export class DocumentStorage implements IDocumentStorage {
   async deleteDocumentComment(id: string): Promise<boolean> {
     const result = await db.delete(documentComments).where(eq(documentComments.id, id));
     return wasDeleted(result);
+  }
+
+  // Get share counts for multiple documents efficiently
+  async getShareCounts(documentIds: string[]): Promise<Map<string, number>> {
+    if (documentIds.length === 0) {
+      return new Map();
+    }
+
+    const shareCounts = await db
+      .select({
+        documentId: documentShares.documentId,
+        count: sql<number>`count(*)`,
+      })
+      .from(documentShares)
+      .where(inArray(documentShares.documentId, documentIds))
+      .groupBy(documentShares.documentId);
+
+    return new Map(shareCounts.map(s => [s.documentId, Number(s.count)]));
   }
 
   // Document Sharing Implementation
@@ -447,17 +571,27 @@ export class DocumentStorage implements IDocumentStorage {
         fontStyle: documents.fontStyle,
         fontSize: documents.fontSize,
         pageWidth: documents.pageWidth,
+        backgroundColor: documents.backgroundColor,
+        textColor: documents.textColor,
+        headingColor: documents.headingColor,
+        h1Color: documents.h1Color,
+        h2Color: documents.h2Color,
+        h3Color: documents.h3Color,
+        h4Color: documents.h4Color,
+        h5Color: documents.h5Color,
+        h6Color: documents.h6Color,
+        linkColor: documents.linkColor,
+        codeBlockBg: documents.codeBlockBg,
+        codeBlockText: documents.codeBlockText,
+        blockquoteBg: documents.blockquoteBg,
+        blockquoteText: documents.blockquoteText,
+        tableBorderColor: documents.tableBorderColor,
+        tableHeaderBg: documents.tableHeaderBg,
         createdAt: documents.createdAt,
         updatedAt: documents.updatedAt,
         lastViewedAt: documents.lastViewedAt,
         isFavorite: documents.isFavorite,
         isShared: documents.isShared,
-        showCoverImage: documents.showCoverImage,
-        showPageIconAndTitle: documents.showPageIconAndTitle,
-        showAuthor: documents.showAuthor,
-        showContributors: documents.showContributors,
-        showSubtitle: documents.showSubtitle,
-        showLastModified: documents.showLastModified,
         showPageOutline: documents.showPageOutline,
         lastUpdatedBy: documents.lastUpdatedBy,
         owner: {
@@ -474,12 +608,237 @@ export class DocumentStorage implements IDocumentStorage {
     const lastUpdaterIds = getLastUpdaterIds(docsWithOwner);
     const lastUpdaterMap = await fetchLastUpdaterMap(lastUpdaterIds);
 
+    // Get share counts for all documents (shared docs don't need shareCount for the viewer, but keeping consistent)
+    const shareCounts = await this.getShareCounts(documentIds);
+
     // Override lastViewedAt with the shared user's own view time
     return docsWithOwner.map(doc => ({
       ...doc,
       lastViewedAt: shareInfoMap.get(doc.id) || null, // Use shared user's lastViewedAt
       lastUpdater: doc.lastUpdatedBy ? lastUpdaterMap.get(doc.lastUpdatedBy) || null : null,
+      shareCount: shareCounts.get(doc.id) || 0,
     })) as DocumentWithOwner[];
+  }
+
+  async getDocumentsSharedWithUserPaginated(userId: string, options: PaginationOptions = {}): Promise<PaginatedDocuments> {
+    const {
+      page = 1,
+      limit = 20,
+      sortField = 'updated_at',
+      sortDirection = 'desc',
+      search = ''
+    } = options;
+
+    const offset = (page - 1) * limit;
+
+    // Build sort column reference
+    const sortColumn = sortField === 'created_at' ? documents.createdAt
+      : sortField === 'title' ? documents.title
+      : sortField === 'last_viewed_at' ? documents.lastViewedAt
+      : documents.updatedAt;
+    const orderFn = sortDirection === 'asc' ? asc : desc;
+
+    // Get shared document IDs first
+    const sharedDocs = await db
+      .select({
+        documentId: documentShares.documentId,
+        sharedUserLastViewedAt: documentShares.lastViewedAt
+      })
+      .from(documentShares)
+      .where(eq(documentShares.userId, userId));
+
+    if (sharedDocs.length === 0) {
+      return { documents: [], total: 0, page, limit, totalPages: 0, hasMore: false };
+    }
+
+    const shareInfoMap = new Map(sharedDocs.map(s => [s.documentId, s.sharedUserLastViewedAt]));
+    const documentIds = sharedDocs.map(s => s.documentId);
+
+    // Build where conditions for search
+    const whereConditions = [inArray(documents.id, documentIds)];
+    if (search) {
+      whereConditions.push(sql`LOWER(${documents.title}) LIKE ${'%' + search.toLowerCase() + '%'}`);
+    }
+
+    // Get total count
+    const [countResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(documents)
+      .where(and(...whereConditions));
+    const total = Number(countResult?.count || 0);
+
+    // Get paginated documents
+    const rows = await db
+      .select({
+        id: documents.id,
+        title: documents.title,
+        content: documents.content,
+        ownerId: documents.ownerId,
+        category: documents.category,
+        tags: documents.tags,
+        fontStyle: documents.fontStyle,
+        fontSize: documents.fontSize,
+        pageWidth: documents.pageWidth,
+        backgroundColor: documents.backgroundColor,
+        textColor: documents.textColor,
+        headingColor: documents.headingColor,
+        h1Color: documents.h1Color,
+        h2Color: documents.h2Color,
+        h3Color: documents.h3Color,
+        h4Color: documents.h4Color,
+        h5Color: documents.h5Color,
+        h6Color: documents.h6Color,
+        linkColor: documents.linkColor,
+        codeBlockBg: documents.codeBlockBg,
+        codeBlockText: documents.codeBlockText,
+        blockquoteBg: documents.blockquoteBg,
+        blockquoteText: documents.blockquoteText,
+        tableBorderColor: documents.tableBorderColor,
+        tableHeaderBg: documents.tableHeaderBg,
+        createdAt: documents.createdAt,
+        updatedAt: documents.updatedAt,
+        lastViewedAt: documents.lastViewedAt,
+        isFavorite: documents.isFavorite,
+        isShared: documents.isShared,
+        showPageOutline: documents.showPageOutline,
+        lastUpdatedBy: documents.lastUpdatedBy,
+        owner: {
+          id: users.id,
+          displayName: users.displayName,
+          email: users.email,
+          profilePicture: users.profilePicture
+        }
+      })
+      .from(documents)
+      .leftJoin(users, eq(documents.ownerId, users.id))
+      .where(and(...whereConditions))
+      .orderBy(orderFn(sortColumn))
+      .limit(limit)
+      .offset(offset);
+
+    const lastUpdaterIds = getLastUpdaterIds(rows);
+    const lastUpdaterMap = await fetchLastUpdaterMap(lastUpdaterIds);
+
+    // Get share counts for all documents
+    const allDocIds = rows.map(r => r.id);
+    const shareCounts = await this.getShareCounts(allDocIds);
+
+    const docs = rows.map(doc => ({
+      ...doc,
+      lastViewedAt: shareInfoMap.get(doc.id) || null,
+      lastUpdater: doc.lastUpdatedBy ? lastUpdaterMap.get(doc.lastUpdatedBy) || null : null,
+      shareCount: shareCounts.get(doc.id) || 0,
+    })) as DocumentWithOwner[];
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      documents: docs,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasMore: page < totalPages,
+    };
+  }
+
+  async getAllUserDocumentsPaginated(userId: string, options: PaginationOptions = {}): Promise<PaginatedDocuments> {
+    const {
+      page = 1,
+      limit = 20,
+      sortField = 'updated_at',
+      sortDirection = 'desc',
+      search = ''
+    } = options;
+
+    const offset = (page - 1) * limit;
+
+    // Build sort column reference
+    const sortColumn = sortField === 'created_at' ? documents.createdAt
+      : sortField === 'title' ? documents.title
+      : sortField === 'last_viewed_at' ? documents.lastViewedAt
+      : documents.updatedAt;
+    const orderFn = sortDirection === 'asc' ? asc : desc;
+
+    // Get owned document IDs
+    const ownedDocs = await db
+      .select({ id: documents.id })
+      .from(documents)
+      .where(eq(documents.ownerId, userId));
+
+    // Get shared document IDs
+    const sharedDocs = await db
+      .select({
+        documentId: documentShares.documentId,
+        sharedUserLastViewedAt: documentShares.lastViewedAt
+      })
+      .from(documentShares)
+      .where(eq(documentShares.userId, userId));
+
+    const shareInfoMap = new Map(sharedDocs.map(s => [s.documentId, s.sharedUserLastViewedAt]));
+    const allDocumentIds = [...new Set([...ownedDocs.map(d => d.id), ...sharedDocs.map(s => s.documentId)])];
+
+    if (allDocumentIds.length === 0) {
+      return { documents: [], total: 0, page, limit, totalPages: 0, hasMore: false };
+    }
+
+    // Build where conditions
+    const whereConditions = [inArray(documents.id, allDocumentIds)];
+    if (search) {
+      whereConditions.push(sql`LOWER(${documents.title}) LIKE ${'%' + search.toLowerCase() + '%'}`);
+    }
+
+    // Get total count
+    const [countResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(documents)
+      .where(and(...whereConditions));
+    const total = Number(countResult?.count || 0);
+
+    // Get paginated documents
+    const rows = await db
+      .select({
+        doc: documents,
+        ownerId: users.id,
+        ownerDisplayName: users.displayName,
+        ownerEmail: users.email,
+        ownerProfilePicture: users.profilePicture,
+      })
+      .from(documents)
+      .leftJoin(users, eq(documents.ownerId, users.id))
+      .where(and(...whereConditions))
+      .orderBy(orderFn(sortColumn))
+      .limit(limit)
+      .offset(offset);
+
+    const lastUpdaterIds = getLastUpdaterIds(rows.map(r => r.doc));
+    const lastUpdaterMap = await fetchLastUpdaterMap(lastUpdaterIds);
+
+    // Get share counts for all documents
+    const documentIds = rows.map(r => r.doc.id);
+    const shareCounts = await this.getShareCounts(documentIds);
+
+    const docs = rows.map(row => {
+      const isSharedDoc = row.doc.ownerId !== userId;
+      return {
+        ...row.doc,
+        owner: buildOwnerObject(row),
+        lastViewedAt: isSharedDoc ? (shareInfoMap.get(row.doc.id) || null) : row.doc.lastViewedAt,
+        lastUpdater: row.doc.lastUpdatedBy ? lastUpdaterMap.get(row.doc.lastUpdatedBy) || null : null,
+        shareCount: shareCounts.get(row.doc.id) || 0,
+      };
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      documents: docs,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasMore: page < totalPages,
+    };
   }
 
   // Document Pages (Hierarchy) Implementation

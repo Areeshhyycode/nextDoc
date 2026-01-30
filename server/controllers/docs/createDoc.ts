@@ -1,10 +1,7 @@
 import type { Request, Response } from "express";
 import { storage } from "../../storage";
 
-/**
- * Create a new document
- * POST /api/docs
- */
+
 export async function createDocHandler(req: Request, res: Response) {
   try {
     const userId = (req.user as any)?.id;
@@ -23,12 +20,22 @@ export async function createDocHandler(req: Request, res: Response) {
       fontStyle,
       fontSize,
       pageWidth,
-      showCoverImage,
-      showPageIconAndTitle,
-      showAuthor,
-      showContributors,
-      showSubtitle,
-      showLastModified,
+      backgroundColor,
+      textColor,
+      headingColor,
+      h1Color,
+      h2Color,
+      h3Color,
+      h4Color,
+      h5Color,
+      h6Color,
+      linkColor,
+      codeBlockBg,
+      codeBlockText,
+      blockquoteBg,
+      blockquoteText,
+      tableBorderColor,
+      tableHeaderBg,
       showPageOutline
     } = req.body;
 
@@ -57,12 +64,22 @@ export async function createDocHandler(req: Request, res: Response) {
       fontStyle: fontStyle || 'system',
       fontSize: fontSize || 'default',
       pageWidth: pageWidth || 'default',
-      showCoverImage: showCoverImage ?? false,
-      showPageIconAndTitle: showPageIconAndTitle ?? true,
-      showAuthor: showAuthor ?? false,
-      showContributors: showContributors ?? false,
-      showSubtitle: showSubtitle ?? false,
-      showLastModified: showLastModified ?? true,
+      backgroundColor: backgroundColor || '#ffffff',
+      textColor: textColor || '#1f2937',
+      headingColor: headingColor || '#111827',
+      h1Color: h1Color || '#111827',
+      h2Color: h2Color || '#1f2937',
+      h3Color: h3Color || '#374151',
+      h4Color: h4Color || '#4b5563',
+      h5Color: h5Color || '#6b7280',
+      h6Color: h6Color || '#9ca3af',
+      linkColor: linkColor || '#3b82f6',
+      codeBlockBg: codeBlockBg || '#f3f4f6',
+      codeBlockText: codeBlockText || '#1f2937',
+      blockquoteBg: blockquoteBg || '#f9fafb',
+      blockquoteText: blockquoteText || '#4b5563',
+      tableBorderColor: tableBorderColor || '#e5e7eb',
+      tableHeaderBg: tableHeaderBg || '#f3f4f6',
       showPageOutline: showPageOutline ?? false,
     });
 

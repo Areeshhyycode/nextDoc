@@ -192,18 +192,30 @@ export const documents = pgTable("documents", {
   fontStyle: text("font_style").default("system"),
   fontSize: text("font_size").default("default"),
   pageWidth: text("page_width").default("default"),
-  showCoverImage: boolean("show_cover_image").default(false),
-  showPageIconAndTitle: boolean("show_page_icon_and_title").default(true),
-  showAuthor: boolean("show_author").default(false),
-  showContributors: boolean("show_contributors").default(false),
-  showSubtitle: boolean("show_subtitle").default(false),
-  showLastModified: boolean("show_last_modified").default(true),
+  backgroundColor: text("background_color").default("#ffffff"),
+  textColor: text("text_color").default("#1f2937"),
+  headingColor: text("heading_color").default("#111827"),
+  h1Color: text("h1_color").default("#111827"),
+  h2Color: text("h2_color").default("#1f2937"),
+  h3Color: text("h3_color").default("#374151"),
+  h4Color: text("h4_color").default("#4b5563"),
+  h5Color: text("h5_color").default("#6b7280"),
+  h6Color: text("h6_color").default("#9ca3af"),
+  linkColor: text("link_color").default("#3b82f6"),
+  codeBlockBg: text("code_block_bg").default("#f3f4f6"),
+  codeBlockText: text("code_block_text").default("#1f2937"),
+  blockquoteBg: text("blockquote_bg").default("#f9fafb"),
+  blockquoteText: text("blockquote_text").default("#4b5563"),
+  tableBorderColor: text("table_border_color").default("#e5e7eb"),
+  tableHeaderBg: text("table_header_bg").default("#f3f4f6"),
   showPageOutline: boolean("show_page_outline").default(false),
   isShared: boolean("is_shared").default(false),
   isProtected: boolean("is_protected").default(false), // When true, only owner can edit
-  // Public link sharing
+  // Public link sharing - Production-grade implementation
   publicLinkEnabled: boolean("public_link_enabled").default(false),
-  publicLinkToken: varchar("public_link_token"), // Unique token for public access
+  publicLinkToken: varchar("public_link_token").unique(), // Unique token for public access (indexed)
+  publicLinkExpiresAt: timestamp("public_link_expires_at"), // Optional expiry for public links
+  publicLinkCreatedAt: timestamp("public_link_created_at"), // When the current token was generated
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
   lastViewedAt: timestamp("last_viewed_at"),
@@ -230,6 +242,62 @@ export const documentComments = pgTable("document_comments", {
   mentionedUserIds: text("mentioned_user_ids").array().default(sql`ARRAY[]::text[]`),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Document invites - for inviting unregistered users via email
+export const documentInvites = pgTable("document_invites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(),
+  email: text("email").notNull(), // Email of the invitee (not yet registered)
+  permission: docSharingPermissionEnum("permission").notNull().default("view"),
+  invitedBy: varchar("invited_by").notNull(), // User who sent the invite
+  token: varchar("token").unique().notNull(), // Unique token for accepting invite
+  status: text("status").default("pending"), // 'pending', 'accepted', 'expired', 'revoked'
+  expiresAt: timestamp("expires_at").notNull(), // Invite expiry date
+  acceptedAt: timestamp("accepted_at"), // When invite was accepted
+  acceptedByUserId: varchar("accepted_by_user_id"), // User ID who accepted (after registration)
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Document templates - user-defined or system templates
+export const documentTemplates = pgTable("document_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  content: text("content").default(""), // JSON content from TipTap editor
+  category: text("category").notNull().default("general"), // general, meeting, project, etc.
+  icon: text("icon"), // Icon identifier (e.g., "project", "meeting", "notes")
+  iconColor: text("icon_color").default("#3B82F6"),
+  isSystem: boolean("is_system").default(false), // System templates cannot be deleted
+  createdBy: varchar("created_by"), // User ID (null for system templates)
+  isPublic: boolean("is_public").default(true), // Visible to all users
+  usageCount: integer("usage_count").default(0), // Track template popularity
+  sortOrder: integer("sort_order").default(0), // Display order
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Document spaces/folders for organizing documents
+export const documentSpaces = pgTable("document_spaces", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon").default("folder"), // Icon identifier
+  color: text("color").default("#3B82F6"),
+  ownerId: varchar("owner_id").notNull(), // User who created the space
+  parentSpaceId: varchar("parent_space_id"), // For nested folders (null for root spaces)
+  sortOrder: integer("sort_order").default(0), // Display order
+  isPrivate: boolean("is_private").default(false), // Private spaces only visible to owner
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Junction table linking documents to spaces
+export const documentSpaceMembers = pgTable("document_space_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  spaceId: varchar("space_id").notNull(),
+  documentId: varchar("document_id").notNull(),
+  addedAt: timestamp("added_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const workspaceProjects = pgTable("workspace_projects", {
@@ -425,6 +493,24 @@ export const insertDocumentShareSchema = createInsertSchema(documentShares).omit
 
 export const updateDocumentShareSchema = insertDocumentShareSchema.partial();
 
+// Validation schema for share document API request
+export const shareDocumentRequestSchema = z.object({
+  userId: z.string().min(1, "User ID is required"),
+  permission: z.enum(["view", "edit", "comment", "edit_comment"], {
+    errorMap: () => ({ message: "Permission must be one of: view, edit, comment, edit_comment" }),
+  }),
+});
+
+// Validation schema for update share permission API request
+export const updateSharePermissionRequestSchema = z.object({
+  permission: z.enum(["view", "edit", "comment", "edit_comment"], {
+    errorMap: () => ({ message: "Permission must be one of: view, edit, comment, edit_comment" }),
+  }),
+});
+
+export type ShareDocumentRequest = z.infer<typeof shareDocumentRequestSchema>;
+export type UpdateSharePermissionRequest = z.infer<typeof updateSharePermissionRequestSchema>;
+
 export const insertDocumentCommentSchema = createInsertSchema(documentComments).omit({
   id: true,
   createdAt: true,
@@ -560,6 +646,64 @@ export type PageTreeNode = {
 export type InsertDocumentComment = z.infer<typeof insertDocumentCommentSchema>;
 export type DocumentComment = typeof documentComments.$inferSelect;
 export type UpdateDocumentComment = z.infer<typeof updateDocumentCommentSchema>;
+
+// Document invites schemas
+export const insertDocumentInviteSchema = createInsertSchema(documentInvites).omit({
+  id: true,
+  createdAt: true,
+  acceptedAt: true,
+  acceptedByUserId: true,
+});
+export const updateDocumentInviteSchema = insertDocumentInviteSchema.partial();
+export type InsertDocumentInvite = z.infer<typeof insertDocumentInviteSchema>;
+export type DocumentInvite = typeof documentInvites.$inferSelect;
+export type UpdateDocumentInvite = z.infer<typeof updateDocumentInviteSchema>;
+
+// Validation schema for invite by email API request
+export const inviteByEmailRequestSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  permission: z.enum(["view", "edit", "comment", "edit_comment"], {
+    errorMap: () => ({ message: "Permission must be one of: view, edit, comment, edit_comment" }),
+  }),
+});
+export type InviteByEmailRequest = z.infer<typeof inviteByEmailRequestSchema>;
+
+// Document templates schemas
+export const insertDocumentTemplateSchema = createInsertSchema(documentTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const updateDocumentTemplateSchema = insertDocumentTemplateSchema.partial();
+export type InsertDocumentTemplate = z.infer<typeof insertDocumentTemplateSchema>;
+export type DocumentTemplate = typeof documentTemplates.$inferSelect;
+export type UpdateDocumentTemplate = z.infer<typeof updateDocumentTemplateSchema>;
+
+// Document spaces schemas
+export const insertDocumentSpaceSchema = createInsertSchema(documentSpaces).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const updateDocumentSpaceSchema = insertDocumentSpaceSchema.partial();
+export type InsertDocumentSpace = z.infer<typeof insertDocumentSpaceSchema>;
+export type DocumentSpace = typeof documentSpaces.$inferSelect;
+export type UpdateDocumentSpace = z.infer<typeof updateDocumentSpaceSchema>;
+
+// Document space with nested children and document count
+export type DocumentSpaceWithMeta = DocumentSpace & {
+  documentCount: number;
+  children: DocumentSpaceWithMeta[];
+};
+
+// Document space members schemas
+export const insertDocumentSpaceMemberSchema = createInsertSchema(documentSpaceMembers).omit({
+  id: true,
+  addedAt: true,
+});
+export type InsertDocumentSpaceMember = z.infer<typeof insertDocumentSpaceMemberSchema>;
+export type DocumentSpaceMember = typeof documentSpaceMembers.$inferSelect;
+
 export type InsertWorkspaceProject = z.infer<typeof insertWorkspaceProjectSchema>;
 export type WorkspaceProject = typeof workspaceProjects.$inferSelect;
 export type UpdateWorkspaceProject = z.infer<typeof updateWorkspaceProjectSchema>;

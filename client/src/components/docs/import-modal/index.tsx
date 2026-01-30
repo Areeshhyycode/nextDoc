@@ -170,7 +170,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[540px] p-0 gap-0 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
+      <DialogContent className="w-[95vw] max-w-[540px] sm:max-w-[540px] p-0 gap-0 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
         <VisuallyHidden>
           <DialogTitle>Import Document</DialogTitle>
           <DialogDescription>Upload a PDF or DOCX file to import as a document</DialogDescription>
@@ -193,9 +193,9 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
         />
 
         {/* Supported Types */}
-        <div className="px-8 mb-8">
-          <p className="text-xs text-gray-400 dark:text-gray-500">
-            Supported file types: .pdf, .docx
+        <div className="px-4 sm:px-8 mb-4 sm:mb-8">
+          <p className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500">
+            Supported: .pdf, .docx, .docm, .dotx, .xlsx, .txt, .html, .htm, .xml
           </p>
         </div>
 

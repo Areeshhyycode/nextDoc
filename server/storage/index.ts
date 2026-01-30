@@ -32,6 +32,9 @@ import {
   type DocumentComment,
   type InsertDocumentComment,
   type UpdateDocumentComment,
+  type DocumentTemplate,
+  type InsertDocumentTemplate,
+  type UpdateDocumentTemplate,
   type WorkspaceProject,
   type InsertWorkspaceProject,
   type UpdateWorkspaceProject,
@@ -40,11 +43,18 @@ import {
   type UpdateProjectSection,
   type DocumentWithOwner,
   type PageTreeNode,
+  type DocumentSpace,
+  type InsertDocumentSpace,
+  type UpdateDocumentSpace,
+  type DocumentSpaceWithMeta,
+  type DocumentSpaceMember,
 } from "@shared/schema";
 
 // Import individual storage modules
-import { UserStorage, userStorage, type IUserStorage } from "./userStorage";
+import { UserStorage, userStorage, type IUserStorage, type UserSearchResult } from "./userStorage";
 import { DocumentStorage, documentStorage, type IDocumentStorage } from "./documentStorage";
+import { TemplateStorage, type ITemplateStorage } from "./templateStorage";
+import { SpaceStorage, type ISpaceStorage } from "./spaceStorage";
 import { ProjectStorage, projectStorage, type IProjectStorage } from "./projectStorage";
 import { GoalStorage, goalStorage, type IGoalStorage } from "./goalStorage";
 import { SprintStorage, sprintStorage, type ISprintStorage } from "./sprintStorage";
@@ -52,7 +62,7 @@ import { TeamStorage, teamStorage, type ITeamStorage } from "./teamStorage";
 import { WorkspaceStorage, workspaceStorage, type IWorkspaceStorage } from "./workspaceStorage";
 
 // Re-export individual storage modules
-export { UserStorage, userStorage, type IUserStorage } from "./userStorage";
+export { UserStorage, userStorage, type IUserStorage, type UserSearchResult } from "./userStorage";
 export { DocumentStorage, documentStorage, type IDocumentStorage } from "./documentStorage";
 export { ProjectStorage, projectStorage, type IProjectStorage } from "./projectStorage";
 export { GoalStorage, goalStorage, type IGoalStorage } from "./goalStorage";
@@ -93,6 +103,8 @@ export interface IStorage extends IUserStorage, IDocumentStorage, IProjectStorag
 export class DatabaseStorage implements IStorage {
   private userStorage = new UserStorage();
   private documentStorage = new DocumentStorage();
+  private templateStorage = new TemplateStorage();
+  private spaceStorageInstance = new SpaceStorage();
   private projectStorage = new ProjectStorage();
   private goalStorage = new GoalStorage();
   private sprintStorage = new SprintStorage();
@@ -102,6 +114,92 @@ export class DatabaseStorage implements IStorage {
   constructor() {
     // Wire up cross-module dependencies
     this.projectStorage.setGoalProgressUpdater((goalId: string) => this.goalStorage.updateGoalProgress(goalId));
+  }
+
+  // ==================== SPACE STORAGE ====================
+  getAllSpaces(userId: string): Promise<DocumentSpace[]> {
+    return this.spaceStorageInstance.getAllSpaces(userId);
+  }
+
+  getSpaceById(id: string): Promise<DocumentSpace | undefined> {
+    return this.spaceStorageInstance.getSpaceById(id);
+  }
+
+  getSpaceTree(userId: string): Promise<DocumentSpaceWithMeta[]> {
+    return this.spaceStorageInstance.getSpaceTree(userId);
+  }
+
+  getChildSpaces(parentId: string): Promise<DocumentSpace[]> {
+    return this.spaceStorageInstance.getChildSpaces(parentId);
+  }
+
+  createSpace(space: InsertDocumentSpace): Promise<DocumentSpace> {
+    return this.spaceStorageInstance.createSpace(space);
+  }
+
+  updateSpace(id: string, updates: UpdateDocumentSpace): Promise<DocumentSpace | undefined> {
+    return this.spaceStorageInstance.updateSpace(id, updates);
+  }
+
+  deleteSpace(id: string): Promise<boolean> {
+    return this.spaceStorageInstance.deleteSpace(id);
+  }
+
+  addDocumentToSpace(spaceId: string, documentId: string): Promise<DocumentSpaceMember> {
+    return this.spaceStorageInstance.addDocumentToSpace(spaceId, documentId);
+  }
+
+  removeDocumentFromSpace(spaceId: string, documentId: string): Promise<boolean> {
+    return this.spaceStorageInstance.removeDocumentFromSpace(spaceId, documentId);
+  }
+
+  getDocumentsInSpace(spaceId: string): Promise<string[]> {
+    return this.spaceStorageInstance.getDocumentsInSpace(spaceId);
+  }
+
+  getSpacesForDocument(documentId: string): Promise<DocumentSpace[]> {
+    return this.spaceStorageInstance.getSpacesForDocument(documentId);
+  }
+
+  moveDocumentToSpace(documentId: string, fromSpaceId: string | null, toSpaceId: string): Promise<void> {
+    return this.spaceStorageInstance.moveDocumentToSpace(documentId, fromSpaceId, toSpaceId);
+  }
+
+  // ==================== TEMPLATE STORAGE ====================
+  getAllTemplates(): Promise<DocumentTemplate[]> {
+    return this.templateStorage.getAllTemplates();
+  }
+
+  getPublicTemplates(): Promise<DocumentTemplate[]> {
+    return this.templateStorage.getPublicTemplates();
+  }
+
+  getTemplateById(id: string): Promise<DocumentTemplate | undefined> {
+    return this.templateStorage.getTemplateById(id);
+  }
+
+  getTemplatesByCategory(category: string): Promise<DocumentTemplate[]> {
+    return this.templateStorage.getTemplatesByCategory(category);
+  }
+
+  createTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate> {
+    return this.templateStorage.createTemplate(template);
+  }
+
+  updateTemplate(id: string, updates: UpdateDocumentTemplate): Promise<DocumentTemplate | undefined> {
+    return this.templateStorage.updateTemplate(id, updates);
+  }
+
+  deleteTemplate(id: string): Promise<boolean> {
+    return this.templateStorage.deleteTemplate(id);
+  }
+
+  incrementTemplateUsageCount(id: string): Promise<void> {
+    return this.templateStorage.incrementUsageCount(id);
+  }
+
+  seedDefaultTemplates(): Promise<void> {
+    return this.templateStorage.seedDefaultTemplates();
   }
 
   // ==================== USER STORAGE ====================
@@ -161,6 +259,10 @@ export class DatabaseStorage implements IStorage {
     return this.userStorage.getAllUsers();
   }
 
+  searchUsers(query: string, excludeUserId: string, limit?: number): Promise<UserSearchResult[]> {
+    return this.userStorage.searchUsers(query, excludeUserId, limit);
+  }
+
   createUserSession(session: InsertUserSession): Promise<UserSession> {
     return this.userStorage.createUserSession(session);
   }
@@ -218,6 +320,10 @@ export class DatabaseStorage implements IStorage {
     return this.documentStorage.getDocumentsByOwner(ownerId);
   }
 
+  getDocumentsByOwnerPaginated(ownerId: string, options?: import('./documentStorage').PaginationOptions): Promise<import('./documentStorage').PaginatedDocuments> {
+    return this.documentStorage.getDocumentsByOwnerPaginated(ownerId, options);
+  }
+
   getDocumentsByCategory(category: 'blank' | 'meeting_notes' | 'project_overview'): Promise<DocumentWithOwner[]> {
     return this.documentStorage.getDocumentsByCategory(category as any);
   }
@@ -268,6 +374,14 @@ export class DatabaseStorage implements IStorage {
 
   getDocumentsSharedWithUser(userId: string): Promise<DocumentWithOwner[]> {
     return this.documentStorage.getDocumentsSharedWithUser(userId);
+  }
+
+  getDocumentsSharedWithUserPaginated(userId: string, options?: import('./documentStorage').PaginationOptions): Promise<import('./documentStorage').PaginatedDocuments> {
+    return this.documentStorage.getDocumentsSharedWithUserPaginated(userId, options);
+  }
+
+  getAllUserDocumentsPaginated(userId: string, options?: import('./documentStorage').PaginationOptions): Promise<import('./documentStorage').PaginatedDocuments> {
+    return this.documentStorage.getAllUserDocumentsPaginated(userId, options);
   }
 
   updateDocumentSharePermission(documentId: string, userId: string, permission: "view" | "edit" | "comment"): Promise<any> {

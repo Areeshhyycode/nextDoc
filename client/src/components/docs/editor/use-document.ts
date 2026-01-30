@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Document } from "@shared/schema";
+import type { Document, LastUpdaterInfo } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { getTemplate } from "@/components/docs/templates";
 import { PageStyles } from "@/components/docs/components/page-styles-panel";
@@ -11,18 +11,30 @@ const DEFAULT_PAGE_STYLES: PageStyles = {
   fontStyle: "system",
   fontSize: "default",
   pageWidth: "default",
-  showCoverImage: false,
-  showPageIconAndTitle: true,
-  showAuthor: false,
-  showContributors: false,
-  showSubtitle: false,
-  showLastModified: true,
+  backgroundColor: "#ffffff",
+  textColor: "#1f2937",
+  headingColor: "#111827",
+  h1Color: "#111827",
+  h2Color: "#1f2937",
+  h3Color: "#374151",
+  h4Color: "#4b5563",
+  h5Color: "#6b7280",
+  h6Color: "#9ca3af",
+  linkColor: "#3b82f6",
+  codeBlockBg: "#f3f4f6",
+  codeBlockText: "#1f2937",
+  blockquoteBg: "#f9fafb",
+  blockquoteText: "#4b5563",
+  tableBorderColor: "#e5e7eb",
+  tableHeaderBg: "#f3f4f6",
   showPageOutline: false,
 };
 
-// Extended document type with userPermission
+// Extended document type with userPermission and related user info from API
 type DocumentWithPermission = Document & {
   userPermission?: "owner" | "view" | "edit" | "comment" | "edit_comment";
+  owner: { id: string; displayName: string; email: string; profilePicture: string | null } | null;
+  lastUpdater?: LastUpdaterInfo | null;
 };
 
 export function useDocument() {
@@ -49,10 +61,13 @@ export function useDocument() {
   const originalTitleRef = useRef<string>("");
   const originalContentRef = useRef<string>("");
 
+  // Track if template has been loaded (to prevent re-loading on every render)
+  const templateLoadedRef = useRef(false);
+
   const isNewDoc = params.id === "new";
   const docId = isNewDoc ? null : params.id;
 
-  // Get category from query params for new docs
+  // Get category and template from query params for new docs
   const urlParams = new URLSearchParams(window.location.search);
   const category = urlParams.get("category") as
     | "blank"
@@ -60,6 +75,21 @@ export function useDocument() {
     | "project_overview"
     | "todo_list"
     || "blank";
+
+  // Get custom template data if passed via URL - memoize to prevent re-parsing on every render
+  const templateParam = urlParams.get("template");
+  const customTemplate = useMemo(() => {
+    if (!templateParam) return null;
+    try {
+      return JSON.parse(decodeURIComponent(templateParam)) as {
+        title: string;
+        content: string;
+        templateId: string;
+      };
+    } catch {
+      return null;
+    }
+  }, [templateParam]);
 
   // Fetch existing document (includes userPermission from backend)
   const { data: document, isLoading, error: documentError } = useQuery<DocumentWithPermission>({
@@ -124,7 +154,7 @@ export function useDocument() {
     (c: any) => c.status === "open"
   ).length;
 
-  // Load document or template
+  // Load document or template - only run once for templates
   useEffect(() => {
     if (document) {
       // Use internal setters for initial load (bypass permission check)
@@ -140,40 +170,56 @@ export function useDocument() {
 
       // Load page styles from document
       setPageStyles({
-        fontStyle: (document.fontStyle || "system") as "system" | "serif" | "mono",
+        fontStyle: (document.fontStyle || "system") as PageStyles["fontStyle"],
         fontSize: (document.fontSize || "default") as "small" | "default" | "large",
         pageWidth: (document.pageWidth || "default") as "default" | "full",
-        showCoverImage: document.showCoverImage ?? false,
-        showPageIconAndTitle: document.showPageIconAndTitle ?? true,
-        showAuthor: document.showAuthor ?? false,
-        showContributors: document.showContributors ?? false,
-        showSubtitle: document.showSubtitle ?? false,
-        showLastModified: document.showLastModified ?? true,
+        backgroundColor: document.backgroundColor || "#ffffff",
+        textColor: document.textColor || "#1f2937",
+        headingColor: document.headingColor || "#111827",
+        h1Color: document.h1Color || "#111827",
+        h2Color: document.h2Color || "#1f2937",
+        h3Color: document.h3Color || "#374151",
+        h4Color: document.h4Color || "#4b5563",
+        h5Color: document.h5Color || "#6b7280",
+        h6Color: document.h6Color || "#9ca3af",
+        linkColor: document.linkColor || "#3b82f6",
+        codeBlockBg: document.codeBlockBg || "#f3f4f6",
+        codeBlockText: document.codeBlockText || "#1f2937",
+        blockquoteBg: document.blockquoteBg || "#f9fafb",
+        blockquoteText: document.blockquoteText || "#4b5563",
+        tableBorderColor: document.tableBorderColor || "#e5e7eb",
+        tableHeaderBg: document.tableHeaderBg || "#f3f4f6",
         showPageOutline: document.showPageOutline ?? false,
       });
+    } else if (isNewDoc && customTemplate && !templateLoadedRef.current) {
+      // Use custom template from URL parameter (from template preview modal)
+      // Only load once to allow user to edit title
+      setTitleInternal(customTemplate.title);
+      setContentInternal(customTemplate.content);
+      setShowStarterOptions(false);
+      templateLoadedRef.current = true;
     } else if (
       isNewDoc &&
+      !templateLoadedRef.current &&
       (category === "meeting_notes" || category === "project_overview" || category === "todo_list")
     ) {
       // Use template from templates folder (use internal setters)
+      // Only load once to allow user to edit title
       const template = getTemplate(category);
       setTitleInternal(template.title);
       setContentInternal(template.content);
       setShowStarterOptions(false);
+      templateLoadedRef.current = true;
     }
-  }, [document, isNewDoc, category]);
+  }, [document, isNewDoc, category, customTemplate]);
 
   // Track document view when opened
   useEffect(() => {
     if (docId && !isNewDoc) {
       apiRequest("PATCH", `/api/docs/${docId}/view`)
         .then(() => {
-          // Invalidate docs query so list shows updated lastViewedAt
-          queryClient.invalidateQueries({
-            predicate: (query) =>
-              typeof query.queryKey[0] === "string" &&
-              query.queryKey[0].startsWith("/api/docs"),
-          });
+          // Invalidate docs list so lastViewedAt updates in the table
+          queryClient.invalidateQueries({ queryKey: ['docs', 'list'] });
         })
         .catch((err) => {
           console.error("Failed to track document view:", err);
@@ -192,14 +238,8 @@ export function useDocument() {
 
   // Toggle starter options based on content - show when empty, hide when has content
   useEffect(() => {
-    if (isContentEmpty(content)) {
-      // Only show starter options for new documents when empty
-      if (isNewDoc) {
-        setShowStarterOptions(true);
-      }
-    } else {
-      setShowStarterOptions(false);
-    }
+    // Don't auto-show starter options - user can access templates via slash menu
+    setShowStarterOptions(false);
   }, [content, isNewDoc]);
 
   // Create mutation
@@ -212,12 +252,10 @@ export function useDocument() {
       fontStyle?: string;
       fontSize?: string;
       pageWidth?: string;
-      showCoverImage?: boolean;
-      showPageIconAndTitle?: boolean;
-      showAuthor?: boolean;
-      showContributors?: boolean;
-      showSubtitle?: boolean;
-      showLastModified?: boolean;
+      backgroundColor?: string;
+      textColor?: string;
+      headingColor?: string;
+      linkColor?: string;
       showPageOutline?: boolean;
     }) => {
       const response = await apiRequest("POST", "/api/docs", data);
@@ -259,12 +297,10 @@ export function useDocument() {
       fontStyle?: string;
       fontSize?: string;
       pageWidth?: string;
-      showCoverImage?: boolean;
-      showPageIconAndTitle?: boolean;
-      showAuthor?: boolean;
-      showContributors?: boolean;
-      showSubtitle?: boolean;
-      showLastModified?: boolean;
+      backgroundColor?: string;
+      textColor?: string;
+      headingColor?: string;
+      linkColor?: string;
       showPageOutline?: boolean;
     }) => {
       const response = await apiRequest("PUT", `/api/docs/${docId}`, data);
@@ -366,12 +402,22 @@ export function useDocument() {
       fontStyle: pageStyles.fontStyle,
       fontSize: pageStyles.fontSize,
       pageWidth: pageStyles.pageWidth,
-      showCoverImage: pageStyles.showCoverImage,
-      showPageIconAndTitle: pageStyles.showPageIconAndTitle,
-      showAuthor: pageStyles.showAuthor,
-      showContributors: pageStyles.showContributors,
-      showSubtitle: pageStyles.showSubtitle,
-      showLastModified: pageStyles.showLastModified,
+      backgroundColor: pageStyles.backgroundColor,
+      textColor: pageStyles.textColor,
+      headingColor: pageStyles.headingColor,
+      h1Color: pageStyles.h1Color,
+      h2Color: pageStyles.h2Color,
+      h3Color: pageStyles.h3Color,
+      h4Color: pageStyles.h4Color,
+      h5Color: pageStyles.h5Color,
+      h6Color: pageStyles.h6Color,
+      linkColor: pageStyles.linkColor,
+      codeBlockBg: pageStyles.codeBlockBg,
+      codeBlockText: pageStyles.codeBlockText,
+      blockquoteBg: pageStyles.blockquoteBg,
+      blockquoteText: pageStyles.blockquoteText,
+      tableBorderColor: pageStyles.tableBorderColor,
+      tableHeaderBg: pageStyles.tableHeaderBg,
       showPageOutline: pageStyles.showPageOutline,
     };
 

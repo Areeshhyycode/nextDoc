@@ -1,8 +1,12 @@
 import { useState } from "react";
-import { ChevronRight, ChevronDown, FileText, Loader2, Plus } from "lucide-react";
+import { ChevronRight, ChevronDown, ChevronLeft, FileText, Loader2, Plus, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { PageTreeNode } from "@shared/schema";
 
 interface PageTreeSidebarProps {
@@ -16,6 +20,8 @@ interface PageTreeSidebarProps {
   onAddPage: (title: string) => Promise<void>;
   onNavigateToPage: (pageId: string) => void;
   currentPageId?: string;
+  isCollapsed?: boolean;
+  onCollapseToggle?: () => void;
 }
 
 interface PageTreeItemProps {
@@ -90,51 +96,87 @@ export function PageTreeSidebar({
   onAddPage,
   onNavigateToPage,
   currentPageId,
+  isCollapsed = false,
+  onCollapseToggle,
 }: PageTreeSidebarProps) {
-  const [isAddingPage, setIsAddingPage] = useState(false);
-  const [newPageTitle, setNewPageTitle] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleAddPage = async () => {
-    if (!newPageTitle.trim()) return;
-
-    setIsSubmitting(true);
-    try {
-      await onAddPage(newPageTitle.trim());
-      setNewPageTitle("");
-      setIsAddingPage(false);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !isSubmitting) {
-      handleAddPage();
-    } else if (e.key === "Escape") {
-      setIsAddingPage(false);
-      setNewPageTitle("");
-    }
-  };
 
   // Don't render anything when closed or if no document
   if (!isOpen || !documentId) {
     return null;
   }
 
+  // Render collapsed state - minimal vertical bar with expand button
+  if (isCollapsed) {
+    return (
+      <TooltipProvider delayDuration={300}>
+        <div className="fixed left-0 top-0 h-full w-12 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-30 flex flex-col items-center py-4 shadow-lg transition-all duration-300 ease-in-out">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onCollapseToggle}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label="Expand sidebar"
+                aria-expanded="false"
+              >
+                <PanelLeftOpen className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
+              Expand Pages Sidebar
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Page count indicator */}
+          {pages.length > 0 && (
+            <div className="mt-4 flex flex-col items-center gap-1">
+              <FileText className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                {pages.length}
+              </span>
+            </div>
+          )}
+        </div>
+      </TooltipProvider>
+    );
+  }
+
   return (
-    <div className="fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-30 flex flex-col shadow-lg">
+    <div className="fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-30 flex flex-col shadow-lg transition-all duration-300 ease-in-out">
       {/* Header */}
       <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <h3 className="font-semibold text-sm text-gray-900 dark:text-white truncate flex-1">
           Pages
         </h3>
-        <button
-          onClick={onToggle}
-          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-        >
-          <ChevronRight className="h-4 w-4 text-gray-500 dark:text-gray-400 rotate-180" />
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Collapse Button */}
+          {onCollapseToggle && (
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={onCollapseToggle}
+                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                    aria-label="Collapse sidebar"
+                    aria-expanded="true"
+                  >
+                    <PanelLeftClose className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
+                  Collapse Sidebar
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {/* Close Button */}
+          <button
+            onClick={onToggle}
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+            aria-label="Close sidebar"
+          >
+            <ChevronLeft className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
       </div>
 
       {/* Document root */}
@@ -178,58 +220,18 @@ export function PageTreeSidebar({
         )}
       </div>
 
-      {/* Add page section */}
+      {/* Add page section - Simplified inline */}
       {canEdit && documentId && (
-        <div className="p-3 border-t border-gray-200 dark:border-gray-700">
-          {isAddingPage ? (
-            <div className="space-y-2">
-              <Input
-                value={newPageTitle}
-                onChange={(e) => setNewPageTitle(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Page title..."
-                className="h-8 text-sm"
-                autoFocus
-                disabled={isSubmitting}
-              />
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={handleAddPage}
-                  disabled={!newPageTitle.trim() || isSubmitting}
-                  className="flex-1 h-7"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    "Add"
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setIsAddingPage(false);
-                    setNewPageTitle("");
-                  }}
-                  disabled={isSubmitting}
-                  className="h-7"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAddingPage(true)}
-              className="w-full h-8 text-sm"
-            >
-              <Plus className="h-4 w-4 mr-1.5" />
-              Add Page
-            </Button>
-          )}
+        <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={async () => {
+              await onAddPage("Untitled Page");
+            }}
+            className="w-full flex items-center gap-2 py-2 px-2 rounded-md text-sm transition-colors text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+          >
+            <Plus className="h-4 w-4 flex-shrink-0" />
+            <span>Add Page</span>
+          </button>
         </div>
       )}
     </div>

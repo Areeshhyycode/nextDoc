@@ -14,7 +14,15 @@ import {
   type InsertInvitation,
 } from "@shared/schema";
 import { db } from "../db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, or, ne } from "drizzle-orm";
+
+// User search result type for sharing
+export interface UserSearchResult {
+  id: string;
+  displayName: string;
+  email: string;
+  profilePicture: string | null;
+}
 
 export interface IUserStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -33,6 +41,9 @@ export interface IUserStorage {
   getOnlineUsers(): Promise<User[]>;
   getUsersByRole(role: 'user' | 'admin' | 'sub-admin'): Promise<User[]>;
   getAllUsers(): Promise<User[]>;
+
+  // User Search (database-level for performance)
+  searchUsers(query: string, excludeUserId: string, limit?: number): Promise<UserSearchResult[]>;
 
   // User Sessions
   createUserSession(session: InsertUserSession): Promise<UserSession>;
@@ -179,6 +190,44 @@ export class UserStorage implements IUserStorage {
       .select()
       .from(users)
       .orderBy(desc(users.createdAt));
+  }
+
+  /**
+   * Database-level user search for sharing autocomplete
+   * More performant than fetching all users and filtering in memory
+   *
+   * @param query - Search query (min 2 characters)
+   * @param excludeUserId - Current user ID to exclude from results
+   * @param limit - Max results to return (default 10)
+   */
+  async searchUsers(query: string, excludeUserId: string, limit: number = 10): Promise<UserSearchResult[]> {
+    if (!query || query.length < 2) {
+      return [];
+    }
+
+    const searchPattern = `%${query.toLowerCase()}%`;
+
+    const results = await db
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        email: users.email,
+        profilePicture: users.profilePicture,
+      })
+      .from(users)
+      .where(
+        and(
+          ne(users.id, excludeUserId),
+          or(
+            sql`LOWER(${users.email}) LIKE ${searchPattern}`,
+            sql`LOWER(${users.displayName}) LIKE ${searchPattern}`
+          )
+        )
+      )
+      .limit(limit)
+      .orderBy(users.displayName);
+
+    return results;
   }
 
   // User Sessions

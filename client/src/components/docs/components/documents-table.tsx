@@ -15,7 +15,7 @@ export function DocumentsTable({ documents }: DocumentsTableProps) {
   return (
     <div className="bg-white dark:bg-gray-800/30 rounded-xl border-2 border-gray-200/60 dark:border-gray-700/50 overflow-hidden shadow-lg shadow-gray-100/50 dark:shadow-gray-900/50">
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden md:grid md:grid-cols-[1fr_120px_50px_40px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_0.5fr_0.5fr] gap-3 px-4 lg:px-6 py-3 bg-gradient-to-b from-gray-50 to-gray-50/50 dark:from-gray-800/80 dark:to-gray-800/40 border-b-2 border-gray-200/60 dark:border-gray-700/50">
+      <div className="hidden md:grid md:grid-cols-[1fr_120px_50px_40px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_140px_40px] gap-3 px-4 lg:px-6 py-3 bg-gradient-to-b from-gray-50 to-gray-50/50 dark:from-gray-800/80 dark:to-gray-800/40 border-b-2 border-gray-200/60 dark:border-gray-700/50">
         <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
           Name
         </div>
@@ -60,13 +60,12 @@ function SharingStatusBadge({ doc, compact = false, isSharedWithMe = false }: { 
   const isShared = doc.isShared;
   const shareCount = doc.shareCount || 0;
 
-  // If this document is shared WITH the current user (not owned by them)
   if (isSharedWithMe) {
     return (
-      <div className={`flex items-center gap-1 sm:gap-1 ${compact ? '' : 'px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-full bg-green-50 dark:bg-green-900/20'}`}>
-        <UserCheck className={`${compact ? 'h-4 w-4 sm:h-3.5 sm:w-3.5' : 'h-4 w-4 sm:h-3.5 sm:w-3.5'} text-green-500 dark:text-green-400 flex-shrink-0`} />
+      <div className="flex items-center gap-1.5">
+        <UserCheck className="h-3.5 w-3.5 text-green-500 dark:text-green-400 flex-shrink-0" />
         {!compact && (
-          <span className="text-xs sm:text-xs font-medium text-green-600 dark:text-green-400 whitespace-nowrap">
+          <span className="text-xs font-medium text-green-600 dark:text-green-400 truncate">
             Shared with me
           </span>
         )}
@@ -74,13 +73,12 @@ function SharingStatusBadge({ doc, compact = false, isSharedWithMe = false }: { 
     );
   }
 
-  // If the current user owns this doc and has shared it with others
   if (isShared) {
     return (
-      <div className={`flex items-center gap-1 sm:gap-1 ${compact ? '' : 'px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20'}`}>
-        <UsersIcon className={`${compact ? 'h-4 w-4 sm:h-3.5 sm:w-3.5' : 'h-4 w-4 sm:h-3.5 sm:w-3.5'} text-blue-500 dark:text-blue-400 flex-shrink-0`} />
+      <div className="flex items-center gap-1.5">
+        <UsersIcon className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
         {!compact && (
-          <span className="text-xs sm:text-xs font-medium text-blue-600 dark:text-blue-400 whitespace-nowrap">
+          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 truncate">
             {shareCount > 0 ? `Shared with ${shareCount}` : 'Shared'}
           </span>
         )}
@@ -89,10 +87,10 @@ function SharingStatusBadge({ doc, compact = false, isSharedWithMe = false }: { 
   }
 
   return (
-    <div className={`flex items-center gap-1 sm:gap-1 ${compact ? '' : 'px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-full bg-gray-100 dark:bg-gray-700/50'}`}>
-      <Lock className={`${compact ? 'h-4 w-4 sm:h-3.5 sm:w-3.5' : 'h-4 w-4 sm:h-3.5 sm:w-3.5'} text-gray-400 dark:text-gray-500 flex-shrink-0`} />
+    <div className="flex items-center gap-1.5">
+      <Lock className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
       {!compact && (
-        <span className="text-xs sm:text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Private</span>
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">Private</span>
       )}
     </div>
   );
@@ -238,7 +236,7 @@ function DocumentRow({ doc }: DocumentRowProps) {
 
       {/* Desktop Layout */}
       <div
-        className="hidden md:grid md:grid-cols-[1fr_120px_50px_40px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_0.5fr_0.5fr] gap-3 px-4 lg:px-6 py-3.5 hover:bg-gradient-to-r hover:from-gray-50/80 hover:to-transparent dark:hover:from-gray-800/40 dark:hover:to-transparent transition-all duration-200 cursor-pointer items-center group relative border-b last:border-b-0 border-gray-100/50 dark:border-gray-700/20"
+        className="hidden md:grid md:grid-cols-[1fr_120px_50px_40px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_140px_40px] gap-3 px-4 lg:px-6 py-3.5 hover:bg-gradient-to-r hover:from-gray-50/80 hover:to-transparent dark:hover:from-gray-800/40 dark:hover:to-transparent transition-all duration-200 cursor-pointer items-center group relative border-b last:border-b-0 border-gray-100/50 dark:border-gray-700/20"
         data-testid={`doc-row-${doc.id}`}
       >
         <Link href={`/docs/${doc.id}`} className="absolute inset-0 z-0" />

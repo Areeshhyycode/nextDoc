@@ -1,5 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import {
   createEditorExtensions,
   EditorBubbleMenu,
@@ -13,7 +13,11 @@ interface RichTextEditorProps {
   editable?: boolean;
 }
 
-export function RichTextEditor({ content, onChange, editable = true }: RichTextEditorProps) {
+export interface RichTextEditorRef {
+  insertTable: (rows: number, cols: number) => void;
+}
+
+export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(function RichTextEditor({ content, onChange, editable = true }, ref) {
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuPosition, setSlashMenuPosition] = useState({ top: 0, left: 0 });
 
@@ -46,7 +50,14 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
   });
 
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
+    if (!editor) return;
+
+    // Normalize both sides by stripping whitespace between tags so that
+    // "<p>a</p>\n<p>b</p>" and "<p>a</p><p>b</p>" are treated as equal.
+    // This prevents an infinite re-render loop where setContent triggers
+    // onUpdate which changes content which triggers this effect again.
+    const normalize = (html: string) => html.replace(/>\s+</g, '><').trim();
+    if (normalize(content || '') !== normalize(editor.getHTML())) {
       editor.commands.setContent(content || '');
     }
   }, [content, editor]);
@@ -57,6 +68,14 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
       editor.setEditable(editable);
     }
   }, [editor, editable]);
+
+  useImperativeHandle(ref, () => ({
+    insertTable: (rows: number, cols: number) => {
+      if (editor) {
+        editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+      }
+    },
+  }), [editor]);
 
   if (!editor) {
     return null;
@@ -87,4 +106,4 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
       <EditorStyles />
     </div>
   );
-}
+});

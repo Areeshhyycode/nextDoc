@@ -42,12 +42,22 @@ export async function updateDocHandler(req: Request, res: Response) {
       fontStyle,
       fontSize,
       pageWidth,
-      showCoverImage,
-      showPageIconAndTitle,
-      showAuthor,
-      showContributors,
-      showSubtitle,
-      showLastModified,
+      backgroundColor,
+      textColor,
+      headingColor,
+      h1Color,
+      h2Color,
+      h3Color,
+      h4Color,
+      h5Color,
+      h6Color,
+      linkColor,
+      codeBlockBg,
+      codeBlockText,
+      blockquoteBg,
+      blockquoteText,
+      tableBorderColor,
+      tableHeaderBg,
       showPageOutline
     } = req.body;
 
@@ -71,12 +81,22 @@ export async function updateDocHandler(req: Request, res: Response) {
     if (fontStyle !== undefined) updates.fontStyle = fontStyle;
     if (fontSize !== undefined) updates.fontSize = fontSize;
     if (pageWidth !== undefined) updates.pageWidth = pageWidth;
-    if (showCoverImage !== undefined) updates.showCoverImage = showCoverImage;
-    if (showPageIconAndTitle !== undefined) updates.showPageIconAndTitle = showPageIconAndTitle;
-    if (showAuthor !== undefined) updates.showAuthor = showAuthor;
-    if (showContributors !== undefined) updates.showContributors = showContributors;
-    if (showSubtitle !== undefined) updates.showSubtitle = showSubtitle;
-    if (showLastModified !== undefined) updates.showLastModified = showLastModified;
+    if (backgroundColor !== undefined) updates.backgroundColor = backgroundColor;
+    if (textColor !== undefined) updates.textColor = textColor;
+    if (headingColor !== undefined) updates.headingColor = headingColor;
+    if (h1Color !== undefined) updates.h1Color = h1Color;
+    if (h2Color !== undefined) updates.h2Color = h2Color;
+    if (h3Color !== undefined) updates.h3Color = h3Color;
+    if (h4Color !== undefined) updates.h4Color = h4Color;
+    if (h5Color !== undefined) updates.h5Color = h5Color;
+    if (h6Color !== undefined) updates.h6Color = h6Color;
+    if (linkColor !== undefined) updates.linkColor = linkColor;
+    if (codeBlockBg !== undefined) updates.codeBlockBg = codeBlockBg;
+    if (codeBlockText !== undefined) updates.codeBlockText = codeBlockText;
+    if (blockquoteBg !== undefined) updates.blockquoteBg = blockquoteBg;
+    if (blockquoteText !== undefined) updates.blockquoteText = blockquoteText;
+    if (tableBorderColor !== undefined) updates.tableBorderColor = tableBorderColor;
+    if (tableHeaderBg !== undefined) updates.tableHeaderBg = tableHeaderBg;
     if (showPageOutline !== undefined) updates.showPageOutline = showPageOutline;
 
     // Handle isFavorite

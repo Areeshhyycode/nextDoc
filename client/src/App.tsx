@@ -29,15 +29,28 @@ import Login from "@/pages/login";
 import AccessDenied from "@/pages/access-denied";
 import AdminDashboard from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
+import PublicDocViewerPage from "@/pages/public-doc-viewer";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import type { User } from "@shared/schema";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
-  const { data: user } = useQuery<User>({ 
+  const { data: user } = useQuery<User>({
     queryKey: ["/api/auth/user"],
-    enabled: isAuthenticated 
+    enabled: isAuthenticated
   });
+
+  // Public routes - accessible without authentication
+  // Check if current path is a public route
+  const isPublicRoute = window.location.pathname.startsWith('/public/');
+  if (isPublicRoute) {
+    return (
+      <Switch>
+        <Route path="/public/docs/:token" component={PublicDocViewerPage} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
 
   // Show loading while checking authentication
   if (isLoading) {

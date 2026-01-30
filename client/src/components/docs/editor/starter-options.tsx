@@ -41,36 +41,36 @@ const templateOptions = [
 
 export function StarterOptions({ onSelectTemplate }: StarterOptionsProps) {
   return (
-    <div className="mb-8" data-testid="starter-options">
-      <div className="text-center mb-8">
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+    <div className="mb-4 sm:mb-8" data-testid="starter-options">
+      <div className="text-center mb-4 sm:mb-8 px-2">
+        <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1 sm:mb-2">
           Get started with a template
         </h3>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
           Choose a starter template or start typing
         </p>
       </div>
-      <div className="flex justify-center gap-6">
+      <div className="flex justify-center gap-3 sm:gap-6 flex-wrap px-2">
         {templateOptions.map((option) => {
           const Icon = option.icon;
           return (
             <button
               key={option.type}
               onClick={() => onSelectTemplate(option.type)}
-              className={`group flex flex-col items-center gap-4 p-8 w-56 bg-white dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 rounded-xl ${option.borderHover} hover:shadow-xl hover:-translate-y-1 transition-all duration-200`}
+              className={`group flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-8 w-32 sm:w-56 bg-white dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 rounded-lg sm:rounded-xl ${option.borderHover} hover:shadow-xl hover:-translate-y-1 transition-all duration-200`}
               data-testid={option.testId}
             >
               {/* Icon */}
-              <div className={`p-4 rounded-xl ${option.iconBg} group-hover:scale-110 transition-all duration-200`}>
-                <Icon className={`h-8 w-8 ${option.iconColor} transition-colors duration-200`} />
+              <div className={`p-2 sm:p-4 rounded-lg sm:rounded-xl ${option.iconBg} group-hover:scale-110 transition-all duration-200`}>
+                <Icon className={`h-5 w-5 sm:h-8 sm:w-8 ${option.iconColor} transition-colors duration-200`} />
               </div>
 
               {/* Text content */}
               <div className="text-center">
-                <p className="font-semibold text-zinc-900 dark:text-zinc-100 text-base mb-1.5">
+                <p className="font-semibold text-zinc-900 dark:text-zinc-100 text-xs sm:text-base mb-0.5 sm:mb-1.5">
                   {option.label}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2">
                   {option.description}
                 </p>
               </div>

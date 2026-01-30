@@ -22,8 +22,54 @@ interface FileDropZoneProps {
   validationResult?: ValidationResult | null;
 }
 
-// Allowed file extensions
-const ALLOWED_EXTENSIONS = [".pdf", ".docx"];
+// Allowed file extensions and their valid MIME types
+const ALLOWED_EXTENSIONS = [
+  ".pdf", ".docx", ".xlsx",
+  ".docm", ".dotx", ".dotm",
+  ".txt", ".htm", ".html", ".mht", ".mhtml",
+  ".xml", ".xmll",
+];
+
+// Known but unsupported — give a helpful hint
+const UNSUPPORTED_HINTS: Record<string, string> = {
+  ".doc":  "Old .doc format is not supported. Please convert to .docx in Word first.",
+  ".dot":  "Old .dot format is not supported. Please convert to .docx in Word first.",
+  ".rtf":  "RTF format is not supported. Please convert to .docx or .txt first.",
+  ".odt":  "ODT format is not supported. Please convert to .docx first.",
+  ".xps":  "XPS format is not supported. Please convert to PDF or .docx first.",
+  ".xls":  "Old .xls format is not supported. Please convert to .xlsx first.",
+};
+
+const MIME_WHITELIST: Record<string, string[]> = {
+  ".pdf": ["application/pdf"],
+  ".docx": [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/zip",
+  ],
+  ".docm": [
+    "application/vnd.ms-word.document.macroEnabled.12",
+    "application/zip",
+  ],
+  ".dotx": [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+    "application/zip",
+  ],
+  ".dotm": [
+    "application/vnd.ms-word.template.macroEnabled.12",
+    "application/zip",
+  ],
+  ".xlsx": [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/zip",
+  ],
+  ".txt": ["text/plain"],
+  ".htm": ["text/html"],
+  ".html": ["text/html"],
+  ".mht": ["message/rfc822", "text/html"],
+  ".mhtml": ["message/rfc822", "text/html"],
+  ".xml": ["text/xml", "application/xml"],
+  ".xmll": ["text/xml", "application/xml"],
+};
 
 // Get file extension
 function getFileExtension(filename: string): string {
@@ -31,22 +77,36 @@ function getFileExtension(filename: string): string {
   return parts.length > 1 ? "." + parts.pop()?.toLowerCase() : "";
 }
 
-// Check if file type is valid
+// Check if file type is valid (extension + MIME double-check)
 function isValidFileType(file: File): { valid: boolean; error?: string } {
   const extension = getFileExtension(file.name);
 
-  if (extension === ".doc") {
-    return {
-      valid: false,
-      error: "Old .doc format is not supported. Please convert to .docx"
-    };
+  // Known but unsupported format
+  const hint = UNSUPPORTED_HINTS[extension];
+  if (hint) {
+    return { valid: false, error: hint };
   }
 
   if (!ALLOWED_EXTENSIONS.includes(extension)) {
     return {
       valid: false,
-      error: `Only PDF and DOCX files are allowed. You selected a '${extension || "unknown"}' file.`
+      error: `File type '${extension || "unknown"}' is not supported. Supported: PDF, DOCX, XLSX, TXT, HTML, and Word variants.`
     };
+  }
+
+  // If browser reports a MIME type, verify it against the whitelist
+  if (file.type && file.type !== "") {
+    const allowedMimes = MIME_WHITELIST[extension];
+    if (allowedMimes && !allowedMimes.includes(file.type)) {
+      // Some browsers report generic types — don't block on mismatch for flexible formats
+      if (file.type === "application/zip" || file.type === "application/octet-stream") {
+        return { valid: true };
+      }
+      return {
+        valid: false,
+        error: `File MIME type '${file.type}' does not match expected type for ${extension.toUpperCase()} files.`
+      };
+    }
   }
 
   return { valid: true };
@@ -58,7 +118,7 @@ export function FileDropZone({
   onFileRemove,
   dragActive,
   onDragStateChange,
-  acceptedTypes = ".pdf,.docx",
+  acceptedTypes = ".pdf,.docx,.docm,.dotx,.dotm,.xlsx,.txt,.htm,.html,.mht,.mhtml,.xml,.xmll,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/html,text/xml,application/xml",
   isValidating = false,
   validationResult = null,
 }: FileDropZoneProps) {
@@ -98,8 +158,14 @@ export function FileDropZone({
     e.stopPropagation();
     onDragStateChange(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      validateAndSelectFile(e.dataTransfer.files[0]);
+    // Use files (not items) and grab only the first actual File entry
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      // Extra guard: skip directory entries or zero-byte blobs
+      if (file.size > 0) {
+        validateAndSelectFile(file);
+      }
     }
   }, [onDragStateChange, validateAndSelectFile]);
 
@@ -147,9 +213,9 @@ export function FileDropZone({
   };
 
   return (
-    <div className="px-8 mb-6">
+    <div className="px-4 sm:px-8 mb-4 sm:mb-6">
       <div
-        className={`relative border-2 border-dashed rounded-lg p-12 transition-colors ${getBorderClass()}`}
+        className={`relative border-2 border-dashed rounded-lg p-6 sm:p-12 transition-colors ${getBorderClass()}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -166,13 +232,13 @@ export function FileDropZone({
         {/* Client-side error message (shows when invalid file type selected) */}
         {clientError && !selectedFile && (
           <div className="flex flex-col items-center">
-            <AlertTriangle className="h-8 w-8 text-red-500 mb-3" />
-            <p className="text-sm text-red-600 dark:text-red-400 text-center font-medium mb-2">
+            <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500 mb-2 sm:mb-3" />
+            <p className="text-xs sm:text-sm text-red-600 dark:text-red-400 text-center font-medium mb-2">
               {clientError}
             </p>
             <button
               onClick={clearClientError}
-              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline"
+              className="text-[10px] sm:text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline"
             >
               Try again
             </button>
@@ -180,26 +246,26 @@ export function FileDropZone({
         )}
 
         {selectedFile ? (
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             <SelectedFilePreview file={selectedFile} onRemove={handleRemove} />
 
             {/* Validation Status */}
-            <div className="flex items-center justify-center gap-2 text-sm">
+            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm">
               {isValidating && (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-yellow-500" />
                   <span className="text-yellow-600 dark:text-yellow-400">Validating file...</span>
                 </>
               )}
               {validationResult?.isValid && (
                 <>
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
                   <span className="text-green-600 dark:text-green-400">File validated successfully</span>
                 </>
               )}
               {validationResult && !validationResult.isValid && (
                 <>
-                  <XCircle className="h-4 w-4 text-red-500" />
+                  <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
                   <span className="text-red-600 dark:text-red-400">{validationResult.error}</span>
                 </>
               )}
@@ -207,8 +273,8 @@ export function FileDropZone({
           </div>
         ) : !clientError && (
           <div className="flex flex-col items-center">
-            <Upload className="h-6 w-6 text-gray-400 dark:text-gray-500 mb-3" />
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <Upload className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400 dark:text-gray-500 mb-2 sm:mb-3" />
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Drag and drop a file or{" "}
               <button
                 onClick={handleBrowseClick}

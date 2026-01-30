@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { DocumentBreadcrumb } from "../components/document-breadcrumb";
 import { EditorTopActions } from "../components/editor-top-actions";
+import { formatRelativeTime, wasUpdated } from "@/lib/date-utils";
 import type { DocumentWithOwner } from "@shared/schema";
 
 interface EditorHeaderProps {
@@ -14,7 +15,6 @@ interface EditorHeaderProps {
   isSaving: boolean;
   isPending: boolean;
   lastSavedAt: Date | null;
-  showLastModified: boolean;
   documentUpdatedAt?: Date | string | null;
   onSave?: () => void;
   duplicateError?: { show: boolean; suggestedTitle?: string };
@@ -34,7 +34,6 @@ export function EditorHeader({
   isSaving,
   isPending,
   lastSavedAt,
-  showLastModified,
   documentUpdatedAt,
   onSave,
   duplicateError,
@@ -65,7 +64,7 @@ export function EditorHeader({
           category={category}
           onNavigateBack={onNavigateBack}
         />
-        <div className="px-4 py-2">
+        <div className="px-2 sm:px-4 py-1.5 sm:py-2">
           <EditorTopActions
             document={document || null}
             isNewDoc={isNewDoc}
@@ -79,49 +78,52 @@ export function EditorHeader({
       </div>
 
       {/* Title and Actions */}
-      <div className="px-6 pb-3 flex items-center justify-between gap-4">
-        <div className="flex-1">
+      <div className="px-3 sm:px-6 pb-2 sm:pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+        <div className="flex-1 w-full sm:w-auto">
           <div className="relative">
             <Input
               value={title}
               onChange={(e) => onTitleChange(e.target.value)}
               placeholder={titleRequiredError ? "Enter a title..." : "Untitled"}
-              className={`text-2xl font-bold border-0 focus-visible:ring-0 px-0 h-auto py-1 placeholder:text-gray-400 ${
+              className={`text-lg sm:text-2xl font-bold border-0 focus-visible:ring-0 px-0 h-auto py-1 placeholder:text-gray-400 ${
                 titleRequiredError ? "placeholder:text-red-400 dark:placeholder:text-red-500" :
                 showWarning ? "text-amber-600 dark:text-amber-500" : ""
-              }`}
+              } ${!canEdit ? "cursor-not-allowed text-gray-500" : ""}`}
+              readOnly={!canEdit}
               data-testid="input-doc-title"
             />
           </div>
 
           {/* Title Required Warning */}
           {titleRequiredError && (
-            <div className="flex items-center gap-2 mt-1.5 text-sm text-red-600 dark:text-red-400">
-              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+            <div className="flex items-center gap-1.5 sm:gap-2 mt-1 sm:mt-1.5 text-xs sm:text-sm text-red-600 dark:text-red-400">
+              <AlertCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
               <span>Please enter a document title</span>
             </div>
           )}
 
           {/* Duplicate Name Warning */}
           {showWarning && (
-            <div className="flex items-center gap-2 mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">
-                  A document with this name already exists
-                </p>
-                {suggestedTitle && (
-                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
-                    Try using a different name to avoid confusion
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1.5 sm:mt-2 p-2 sm:p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-400 font-medium">
+                    A document with this name already exists
                   </p>
-                )}
+                  {suggestedTitle && (
+                    <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-500 mt-0.5">
+                      Try using a different name to avoid confusion
+                    </p>
+                  )}
+                </div>
               </div>
               {suggestedTitle && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleUseSuggested}
-                  className="flex-shrink-0 text-xs h-7 px-2 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                  className="flex-shrink-0 text-[10px] sm:text-xs h-6 sm:h-7 px-2 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40"
                 >
                   Use "{suggestedTitle}"
                 </Button>
@@ -129,8 +131,8 @@ export function EditorHeader({
             </div>
           )}
 
-          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {lastSavedAt && !isNewDoc && showLastModified && (
+          <div className="flex items-center gap-2 sm:gap-3 mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+            {lastSavedAt && !isNewDoc && (
               <span data-testid="last-saved-indicator">
                 {isSaving ? (
                   <span className="flex items-center gap-1">
@@ -145,20 +147,28 @@ export function EditorHeader({
                 )}
               </span>
             )}
-            {documentUpdatedAt && showLastModified && (
-              <span>
-                Last updated{" "}
-                {format(new Date(documentUpdatedAt), "MMM d, yyyy")}
+            {!isNewDoc && documentUpdatedAt && wasUpdated(document?.createdAt || null, documentUpdatedAt) && (
+              <span className="flex items-center gap-1">
+                {lastSavedAt && <span className="text-gray-300 dark:text-gray-600">•</span>}
+                <span>
+                  Last updated {formatRelativeTime(documentUpdatedAt)}
+                </span>
+                {document?.lastUpdater && document.lastUpdater.id !== document.ownerId && (
+                  <span className="text-gray-400 dark:text-gray-500">
+                    by {document.lastUpdater.displayName}
+                  </span>
+                )}
               </span>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {isNewDoc && (
             <Button
               onClick={onSave}
               disabled={isPending}
               data-testid="button-save-doc"
+              className="w-full sm:w-auto h-8 sm:h-10 text-xs sm:text-sm"
             >
               {isPending ? "Creating..." : "Create Document"}
             </Button>

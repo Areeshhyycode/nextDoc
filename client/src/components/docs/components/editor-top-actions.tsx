@@ -239,36 +239,113 @@ export function EditorTopActions({
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <Download className="h-4 w-4 mr-2" />
-                      Download
+                      Export
                     </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="w-40">
-                      <DropdownMenuItem onClick={() => handleExport("pdf")}>
-                        <FileText className="h-4 w-4 mr-2 text-red-500" />
-                        PDF
+                    <DropdownMenuSubContent className="w-56">
+                      <DropdownMenuItem onClick={() => handleExport("docx")}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-600 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Word Document</span>
+                          <span className="block text-xs text-gray-500">.docx</span>
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport("docm")}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-500 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Word Macro-Enabled Document</span>
+                          <span className="block text-xs text-gray-500">.docm</span>
+                        </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExport("word")}>
-                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-600" />
-                        Word
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-400 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Word 97-2003 Document</span>
+                          <span className="block text-xs text-gray-500">.doc</span>
+                        </span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleExport("rtf")}>
-                        <FileType className="h-4 w-4 mr-2 text-purple-500" />
-                        RTF
+                      <DropdownMenuItem onClick={() => handleExport("dotm")}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-300 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Word Macro-Enabled Template</span>
+                          <span className="block text-xs text-gray-500">.dotm</span>
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport("dotx")}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-500 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Word Template</span>
+                          <span className="block text-xs text-gray-500">.dotx</span>
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport("dot")}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-300 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Word 97-2003 Template</span>
+                          <span className="block text-xs text-gray-500">.dot</span>
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport("pdf")}>
+                        <FileText className="h-4 w-4 mr-2 text-red-500 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">PDF Document</span>
+                          <span className="block text-xs text-gray-500">.pdf</span>
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport("xps")}>
+                        <FileText className="h-4 w-4 mr-2 text-indigo-500 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">XPS Document</span>
+                          <span className="block text-xs text-gray-500">.xps</span>
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport("mht")}>
+                        <FileCode className="h-4 w-4 mr-2 text-orange-400 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Single File Web Page</span>
+                          <span className="block text-xs text-gray-500">.mht, .mhtml</span>
+                        </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExport("html")}>
-                        <FileCode className="h-4 w-4 mr-2 text-orange-500" />
-                        HTML
+                        <FileCode className="h-4 w-4 mr-2 text-orange-500 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Web Page</span>
+                          <span className="block text-xs text-gray-500">.htm, .html</span>
+                        </span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleExport("markdown")}>
-                        <FileCode className="h-4 w-4 mr-2 text-teal-500" />
-                        Markdown
+                      <DropdownMenuItem onClick={() => handleExport("rtf")}>
+                        <FileType className="h-4 w-4 mr-2 text-purple-500 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Rich Text Format</span>
+                          <span className="block text-xs text-gray-500">.rtf</span>
+                        </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExport("text")}>
-                        <File className="h-4 w-4 mr-2 text-gray-500" />
-                        Text
+                        <File className="h-4 w-4 mr-2 text-gray-500 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Plain Text</span>
+                          <span className="block text-xs text-gray-500">.txt</span>
+                        </span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleExport("json")}>
-                        <FileJson className="h-4 w-4 mr-2 text-yellow-600" />
-                        JSON
+                      <DropdownMenuItem onClick={() => handleExport("wordxml")}>
+                        <FileCode className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Word XML Document</span>
+                          <span className="block text-xs text-gray-500">.xml</span>
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport("strict")}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-600 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">Strict Open XML Document</span>
+                          <span className="block text-xs text-gray-500">.docx</span>
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport("odt")}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-emerald-500 flex-shrink-0" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm">OpenDocument Text</span>
+                          <span className="block text-xs text-gray-500">.odt</span>
+                        </span>
                       </DropdownMenuItem>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>

@@ -3,6 +3,8 @@ import multer from "multer";
 import mammoth from "mammoth";
 import sanitizeHtml from "sanitize-html";
 import { fileTypeFromBuffer } from "file-type";
+import JSZip from "jszip";
+import * as XLSX from "xlsx";
 import { storage } from "../storage";
 import { requireAuth } from "../auth";
 // pdf-parse is dynamically imported to avoid loading test files at startup
@@ -22,14 +24,26 @@ interface MulterErrorType extends Error {
   code?: string;
 }
 
-// Valid MIME types (magic bytes check)
-const VALID_MIME_TYPES = {
-  pdf: "application/pdf",
-  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-} as const;
+// Allowed extensions — formats we can actively parse
+const ALLOWED_EXTENSIONS = [
+  ".pdf", ".docx", ".xlsx",
+  // Word ZIP-based variants (mammoth handles all of these)
+  ".docm", ".dotx", ".dotm",
+  // Plain text / HTML
+  ".txt", ".htm", ".html", ".mht", ".mhtml",
+  // Word XML
+  ".xml", ".xmll",
+];
 
-// Allowed extensions
-const ALLOWED_EXTENSIONS = [".pdf", ".docx"];
+// Formats we recognise but cannot parse — give a helpful conversion message
+const UNSUPPORTED_WITH_HINT: Record<string, string> = {
+  ".doc":  "Old .doc format is not supported. Please convert to .docx in Word first.",
+  ".dot":  "Old .dot format is not supported. Please convert to .docx in Word first.",
+  ".rtf":  "RTF format is not supported. Please convert to .docx or .txt first.",
+  ".odt":  "ODT format is not supported. Please convert to .docx first.",
+  ".xps":  "XPS format is not supported. Please convert to PDF or .docx first.",
+  ".xls":  "Old .xls format is not supported. Please convert to .xlsx first.",
+};
 
 // Sanitize HTML config - XSS protection
 const sanitizeConfig: sanitizeHtml.IOptions = {
@@ -71,7 +85,7 @@ const uploadForValidation = multer({
   },
 });
 
-// Multer config - sirf PDF aur DOCX for import
+// Multer config - PDF, DOCX, XLSX for import
 const uploadForImport = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -80,15 +94,17 @@ const uploadForImport = multer({
   fileFilter: (_req: Express.Request, file: MulterFile, cb: multer.FileFilterCallback) => {
     const fileExtension = "." + file.originalname.split(".").pop()?.toLowerCase();
 
-    if (fileExtension === ".doc") {
-      cb(new FileValidationError("Old .doc format not supported. Please convert to .docx"));
+    // Known but unsupported format — give helpful hint
+    const hint = UNSUPPORTED_WITH_HINT[fileExtension];
+    if (hint) {
+      cb(new FileValidationError(hint));
       return;
     }
 
     if (ALLOWED_EXTENSIONS.includes(fileExtension)) {
       cb(null, true);
     } else {
-      cb(new FileValidationError(`Only PDF and DOCX files are allowed. You uploaded a '${fileExtension}' file.`));
+      cb(new FileValidationError(`File type '${fileExtension}' is not supported. Supported: PDF, DOCX, XLSX, TXT, HTML, and Word variants.`));
     }
   },
 });
@@ -98,20 +114,110 @@ function getFileExtension(filename: string): string {
   return "." + filename.split(".").pop()?.toLowerCase();
 }
 
-// Validate file content using magic bytes
-async function validateFileContent(buffer: Buffer, expectedType: "pdf" | "docx"): Promise<boolean> {
-  const detectedType = await fileTypeFromBuffer(buffer);
+// Check if buffer starts with %PDF- signature (tolerates BOM / leading whitespace)
+function hasPdfSignature(buffer: Buffer): boolean {
+  const head = buffer.subarray(0, 1024).toString("binary");
+  return head.includes("%PDF-");
+}
 
-  if (!detectedType) {
+// Verify a ZIP buffer contains a specific internal entry path
+async function zipContainsEntry(buffer: Buffer, entryPath: string): Promise<boolean> {
+  try {
+    const zip = await JSZip.loadAsync(buffer);
+    return entryPath in zip.files;
+  } catch {
     return false;
   }
+}
 
-  if (expectedType === "docx") {
-    return detectedType.mime === "application/zip" ||
-           detectedType.mime === VALID_MIME_TYPES.docx;
+// Validate file content using magic bytes + structure checks
+async function validateFileContent(
+  buffer: Buffer,
+  expectedType: "pdf" | "docx" | "xlsx" | "txt" | "html" | "xml"
+): Promise<{ valid: boolean; reason?: string }> {
+  // Text-based formats — extension check is sufficient, no magic bytes needed
+  if (expectedType === "txt") {
+    if (buffer.length === 0) return { valid: false, reason: "File is empty" };
+    return { valid: true };
   }
 
-  return detectedType.mime === VALID_MIME_TYPES[expectedType];
+  if (expectedType === "html") {
+    if (buffer.length === 0) return { valid: false, reason: "File is empty" };
+    return { valid: true };
+  }
+
+  if (expectedType === "xml") {
+    if (buffer.length === 0) return { valid: false, reason: "File is empty" };
+    // Quick check: should contain an XML-like tag
+    const preview = buffer.subarray(0, 4096).toString("utf8");
+    if (preview.includes("<") && preview.includes(">")) return { valid: true };
+    return { valid: false, reason: "File does not appear to contain valid XML" };
+  }
+
+  // fileTypeFromBuffer crashes on Node 18 with 'deflate-raw' not supported.
+  // Wrap in try-catch so we fall through to manual signature checks below.
+  let detectedType: { ext: string; mime: string } | undefined;
+  try {
+    detectedType = await fileTypeFromBuffer(buffer);
+  } catch {
+    // file-type unavailable on this Node version — rely on manual checks
+    detectedType = undefined;
+  }
+
+  // --- PDF ---
+  if (expectedType === "pdf") {
+    if (detectedType?.ext === "pdf" || hasPdfSignature(buffer)) {
+      return { valid: true };
+    }
+    return { valid: false, reason: "File does not contain a valid PDF signature" };
+  }
+
+  // --- DOCX / DOCM / DOTX / DOTM — all ZIP with word/document.xml ---
+  if (expectedType === "docx") {
+    if (detectedType?.ext === "zip" || detectedType?.ext === "docx" || detectedType?.mime === "application/zip" || !detectedType) {
+      const hasWordEntry = await zipContainsEntry(buffer, "word/document.xml");
+      if (hasWordEntry) return { valid: true };
+      return { valid: false, reason: "ZIP file does not contain word/document.xml — not a valid Word document" };
+    }
+    return { valid: false, reason: "File is not a ZIP-based Word format" };
+  }
+
+  // --- XLSX ---
+  if (expectedType === "xlsx") {
+    if (detectedType?.ext === "zip" || detectedType?.ext === "xlsx" || detectedType?.mime === "application/zip" || !detectedType) {
+      const hasSheetEntry = await zipContainsEntry(buffer, "xl/workbook.xml");
+      if (hasSheetEntry) return { valid: true };
+      return { valid: false, reason: "ZIP file does not contain xl/workbook.xml — not a valid XLSX" };
+    }
+    return { valid: false, reason: "File is not a ZIP-based XLSX format" };
+  }
+
+  return { valid: false, reason: "Unknown expected type" };
+}
+
+// Map extension to expected type key
+function extensionToType(ext: string): "pdf" | "docx" | "xlsx" | "txt" | "html" | "xml" | null {
+  const map: Record<string, "pdf" | "docx" | "xlsx" | "txt" | "html" | "xml"> = {
+    ".pdf": "pdf",
+    // Word ZIP-based (all parsed by mammoth)
+    ".docx": "docx",
+    ".docm": "docx",
+    ".dotx": "docx",
+    ".dotm": "docx",
+    // Spreadsheet
+    ".xlsx": "xlsx",
+    // Plain text
+    ".txt": "txt",
+    // HTML variants
+    ".htm": "html",
+    ".html": "html",
+    ".mht": "html",
+    ".mhtml": "html",
+    // Word XML
+    ".xml": "xml",
+    ".xmll": "xml",
+  };
+  return map[ext] ?? null;
 }
 
 // Full file validation helper
@@ -126,15 +232,10 @@ async function validateFile(file: MulterFile): Promise<{
   const fileSize = file.size;
   const fileExtension = getFileExtension(fileName);
 
-  // Check extension
-  if (fileExtension === ".doc") {
-    return {
-      isValid: false,
-      fileType: "doc",
-      fileName,
-      fileSize,
-      error: "Old .doc format not supported. Please convert to .docx"
-    };
+  // Check for known-but-unsupported formats first
+  const hint = UNSUPPORTED_WITH_HINT[fileExtension];
+  if (hint) {
+    return { isValid: false, fileType: fileExtension.replace(".", ""), fileName, fileSize, error: hint };
   }
 
   if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
@@ -143,71 +244,188 @@ async function validateFile(file: MulterFile): Promise<{
       fileType: fileExtension.replace(".", ""),
       fileName,
       fileSize,
-      error: `File type '${fileExtension}' not supported. Only PDF and DOCX allowed`
+      error: `File type '${fileExtension}' is not supported. Supported: PDF, DOCX, XLSX, TXT, HTML, and Word variants.`
     };
   }
 
-  // Check magic bytes
-  const expectedType = fileExtension === ".pdf" ? "pdf" : "docx";
-  const isValidContent = await validateFileContent(file.buffer, expectedType);
+  const expectedType = extensionToType(fileExtension);
+  if (!expectedType) {
+    return { isValid: false, fileType: null, fileName, fileSize, error: "Unrecognized file type" };
+  }
 
-  if (!isValidContent) {
+  // Deep content validation
+  const contentCheck = await validateFileContent(file.buffer, expectedType);
+  if (!contentCheck.valid) {
     return {
       isValid: false,
-      fileType: fileExtension.replace(".", ""),
+      fileType: expectedType,
       fileName,
       fileSize,
-      error: `File content does not match ${fileExtension.toUpperCase()} format. File may be corrupted or renamed`
+      error: contentCheck.reason ?? `File content does not match ${fileExtension.toUpperCase()} format`
     };
   }
 
-  return {
-    isValid: true,
-    fileType: expectedType,
-    fileName,
-    fileSize,
-    error: null
-  };
+  return { isValid: true, fileType: expectedType, fileName, fileSize, error: null };
 }
 
-// PDF parse helper
+// PDF parse helper — preserves whitespace layout so CVs/resumes render correctly
 async function parsePDF(buffer: Buffer): Promise<string> {
-  // Dynamic import to avoid pdf-parse loading test files at startup
-  const pdfParse = (await import("pdf-parse")).default;
+  // Use the internal lib path to avoid pdf-parse's index.js reading a test file
+  // at ./test/data/05-versions-space.pdf relative to cwd (known upstream bug)
+  // @ts-ignore — no types for the internal path, but it works at runtime
+  const pdfParse = (await import("pdf-parse/lib/pdf-parse.js")).default;
   const data = await pdfParse(buffer);
 
   if (!data.text || data.text.trim().length === 0) {
     throw new FileParseError("PDF appears to be empty or contains only images");
   }
 
-  const content = data.text
-    .split(/\n{2,}/)
-    .filter((para: string) => para.trim().length > 0)
-    .map((para: string) => {
-      const trimmed = para.trim();
-      if (trimmed.length < 100 && trimmed === trimmed.toUpperCase() && trimmed.length > 3) {
-        return `<h2>${trimmed}</h2>`;
-      }
-      return `<p>${trimmed.replace(/\n/g, " ")}</p>`;
-    })
-    .join("\n");
+  // Strip all tags so only plain text remains
+  const safeText = sanitizeHtml(data.text, { allowedTags: [], allowedAttributes: {} });
 
-  return sanitizeHtml(content, sanitizeConfig);
+  // Convert each line into its own <p> so TipTap/ProseMirror renders them
+  // as separate paragraphs. Empty lines stay as <p></p> — that's what
+  // TipTap's own serializer outputs for blank paragraphs.
+  const html = safeText
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trimEnd();
+      return `<p>${trimmed}</p>`;
+    })
+    .join("");
+
+  return html;
 }
 
-// DOCX parse helper
+// DOCX parse helper — enriched sanitize config preserves Word formatting
 async function parseDocx(buffer: Buffer): Promise<string> {
   const result = await mammoth.convertToHtml({ buffer });
 
   if (!result.value || result.value.trim().length === 0) {
-    throw new FileParseError("DOCX appears to be empty");
+    throw new FileParseError("Word document appears to be empty");
   }
 
   if (result.messages && result.messages.length > 0) {
     console.log("[DocImport] DOCX conversion warnings:", result.messages);
   }
 
-  return sanitizeHtml(result.value, sanitizeConfig);
+  // Enriched config: allow div, img, blockquote, hr, pre, code that mammoth/Word produce
+  const docxSanitizeConfig: sanitizeHtml.IOptions = {
+    ...sanitizeConfig,
+    allowedTags: [
+      ...(sanitizeConfig.allowedTags as string[]),
+      "div", "img", "blockquote", "hr", "pre", "code", "sub", "sup", "mark",
+    ],
+    allowedAttributes: {
+      ...(sanitizeConfig.allowedAttributes as Record<string, string[]>),
+      img: ["src", "alt", "width", "height"],
+      div: ["style"],
+      p: ["style"],
+      span: ["style"],
+      blockquote: ["style"],
+    },
+  };
+
+  return sanitizeHtml(result.value, docxSanitizeConfig);
+}
+
+// XLSX parse helper — converts first sheet to HTML table
+async function parseXlsx(buffer: Buffer): Promise<string> {
+  const wb = XLSX.read(buffer, { type: "buffer" });
+
+  if (!wb.SheetNames || wb.SheetNames.length === 0) {
+    throw new FileParseError("XLSX file contains no sheets");
+  }
+
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const html = XLSX.utils.sheet_to_html(sheet);
+
+  if (!html || html.trim().length === 0) {
+    throw new FileParseError("XLSX first sheet appears to be empty");
+  }
+
+  return sanitizeHtml(html, sanitizeConfig);
+}
+
+// TXT parse helper — each line becomes a <p>
+function parseTxt(buffer: Buffer): string {
+  const text = buffer.toString("utf8");
+
+  if (text.trim().length === 0) {
+    throw new FileParseError("Text file appears to be empty");
+  }
+
+  // Sanitize to strip any injected tags, then wrap each line in <p>
+  const safeText = sanitizeHtml(text, { allowedTags: [], allowedAttributes: {} });
+  return safeText
+    .split("\n")
+    .map((line) => `<p>${line.trimEnd()}</p>`)
+    .join("");
+}
+
+// HTML parse helper — sanitize and return
+function parseHtml(buffer: Buffer): string {
+  const html = buffer.toString("utf8");
+
+  if (html.trim().length === 0) {
+    throw new FileParseError("HTML file appears to be empty");
+  }
+
+  // Strip <script>, <style>, <iframe> etc. and only allow safe tags
+  const htmlSanitizeConfig: sanitizeHtml.IOptions = {
+    ...sanitizeConfig,
+    allowedTags: [
+      ...(sanitizeConfig.allowedTags as string[]),
+      "div", "img", "blockquote", "hr", "pre", "code", "sub", "sup", "mark",
+    ],
+    allowedAttributes: {
+      ...(sanitizeConfig.allowedAttributes as Record<string, string[]>),
+      img: ["src", "alt", "width", "height"],
+      div: ["style"],
+      p: ["style"],
+      span: ["style"],
+    },
+  };
+
+  return sanitizeHtml(html, htmlSanitizeConfig);
+}
+
+// Word XML parse helper — mammoth handles .xml Word documents
+async function parseWordXml(buffer: Buffer): Promise<string> {
+  try {
+    const result = await mammoth.convertToHtml({ buffer });
+    if (result.value && result.value.trim().length > 0) {
+      const docxSanitizeConfig: sanitizeHtml.IOptions = {
+        ...sanitizeConfig,
+        allowedTags: [
+          ...(sanitizeConfig.allowedTags as string[]),
+          "div", "img", "blockquote", "hr", "pre", "code", "sub", "sup", "mark",
+        ],
+        allowedAttributes: {
+          ...(sanitizeConfig.allowedAttributes as Record<string, string[]>),
+          img: ["src", "alt", "width", "height"],
+          div: ["style"],
+          p: ["style"],
+          span: ["style"],
+        },
+      };
+      return sanitizeHtml(result.value, docxSanitizeConfig);
+    }
+  } catch {
+    // mammoth can't parse this XML — fall through to plain text extraction
+  }
+
+  // Fallback: strip XML tags and treat as plain text
+  const text = buffer.toString("utf8");
+  const stripped = sanitizeHtml(text, { allowedTags: [], allowedAttributes: {} });
+  if (stripped.trim().length === 0) {
+    throw new FileParseError("XML file appears to be empty or contains no readable text");
+  }
+  return stripped
+    .split("\n")
+    .filter((line) => line.trim().length > 0)
+    .map((line) => `<p>${line.trimEnd()}</p>`)
+    .join("");
 }
 
 // Check if error is MulterError
@@ -302,8 +520,16 @@ async function importDocumentHandler(req: Request & { file?: MulterFile }, res: 
     // Parse based on file type
     if (fileExtension === ".pdf") {
       extractedContent = await parsePDF(file.buffer);
-    } else if (fileExtension === ".docx") {
+    } else if ([".docx", ".docm", ".dotx", ".dotm"].includes(fileExtension)) {
       extractedContent = await parseDocx(file.buffer);
+    } else if (fileExtension === ".xlsx") {
+      extractedContent = await parseXlsx(file.buffer);
+    } else if (fileExtension === ".txt") {
+      extractedContent = parseTxt(file.buffer);
+    } else if ([".htm", ".html", ".mht", ".mhtml"].includes(fileExtension)) {
+      extractedContent = parseHtml(file.buffer);
+    } else if ([".xml", ".xmll"].includes(fileExtension)) {
+      extractedContent = await parseWordXml(file.buffer);
     }
 
     // Save to database

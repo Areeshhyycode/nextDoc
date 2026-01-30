@@ -1,12 +1,7 @@
 import type { Request, Response } from "express";
 import { storage } from "../../storage";
 
-/**
- * Create a new page under a document
- * POST /api/docs/:id/pages
- *
- * Only owners and users with edit/edit_comment permission can create pages
- */
+
 export async function createDocPageHandler(req: Request, res: Response) {
   try {
     const userId = (req.user as any)?.id;

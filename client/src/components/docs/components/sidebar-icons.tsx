@@ -1,4 +1,4 @@
-import { MessageSquare, Settings, FileText } from 'lucide-react';
+import { MessageSquare, Settings, FileText, FilePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -20,6 +20,10 @@ interface SidebarIconsProps {
   pagesCount?: number;
   isNewDoc?: boolean;
   document?: DocumentWithOwner | null;
+  /** Show add page button */
+  canAddPage?: boolean;
+  /** Callback when add page button is clicked */
+  onAddPage?: () => void;
 }
 
 export function SidebarIcons({
@@ -32,11 +36,35 @@ export function SidebarIcons({
   commentsCount = 0,
   pagesCount = 0,
   isNewDoc = false,
-  document
+  document,
+  canAddPage = false,
+  onAddPage,
 }: SidebarIconsProps) {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="fixed right-4 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-l-lg shadow-lg py-2">
+        {/* Add Page Icon */}
+        {canAddPage && onAddPage && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onAddPage}
+                  className="relative flex flex-col items-center justify-center w-12 h-12 transition-all group hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                  data-testid="sidebar-icon-add-page"
+                >
+                  <FilePlus className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
+                Add Page
+              </TooltipContent>
+            </Tooltip>
+            {/* Divider */}
+            <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2" />
+          </>
+        )}
+
         {/* Pages Icon */}
         {onPagesToggle && !isNewDoc && (
           <>

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import {
   DropdownMenu,
@@ -20,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useDocumentMutations } from "@/hooks/use-document-mutations";
 import type { DocumentWithOwner } from "@shared/schema";
 import {
   MoreHorizontal,
@@ -58,151 +57,59 @@ export function DocSettingsDropdown({
   const [newTitle, setNewTitle] = useState(doc.title);
   const [isProtected, setIsProtected] = useState(false);
 
-  // Rename mutation
-  const renameMutation = useMutation({
-    mutationFn: async (title: string) => {
-      const response = await apiRequest("PUT", `/api/docs/${doc.id}`, { title });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw errorData;
-      }
-      return response.json();
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        predicate: (query) =>
-          typeof query.queryKey[0] === "string" &&
-          query.queryKey[0].startsWith("/api/docs"),
-        refetchType: 'all',
-      });
-      toast({ title: "Document renamed successfully" });
-      setRenameDialogOpen(false);
-    },
-    onError: (error: any) => {
-      if (error?.code === "DUPLICATE_TITLE") {
-        toast({
-          title: "Name already exists",
-          description: `Try: ${error.suggestedTitle}`,
-          variant: "destructive",
-        });
-      } else {
-        toast({ title: "Failed to rename document", variant: "destructive" });
-      }
-    },
+  // Use centralized mutations hook
+  const mutations = useDocumentMutations({
+    docId: doc.id,
+    onDeleteSuccess: () => setDeleteDialogOpen(false),
+    onDuplicateSuccess: (newDocId) => navigate(`/docs/${newDocId}`),
   });
 
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("DELETE", `/api/docs/${doc.id}`);
-      if (!response.ok) {
-        throw new Error("Failed to delete");
-      }
-      return true;
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        predicate: (query) =>
-          typeof query.queryKey[0] === "string" &&
-          query.queryKey[0].startsWith("/api/docs"),
-        refetchType: 'all',
-      });
-      toast({ title: "Document deleted successfully" });
-      setDeleteDialogOpen(false);
-    },
-    onError: () => {
-      toast({ title: "Failed to delete document", variant: "destructive" });
-    },
-  });
-
-  // Duplicate mutation
-  const duplicateMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/docs/${doc.id}/duplicate`);
-      if (!response.ok) {
-        throw new Error("Failed to duplicate");
-      }
-      return response.json();
-    },
-    onSuccess: async (newDoc: any) => {
-      await queryClient.invalidateQueries({
-        predicate: (query) =>
-          typeof query.queryKey[0] === "string" &&
-          query.queryKey[0].startsWith("/api/docs"),
-        refetchType: 'all',
-      });
-      toast({ title: "Document duplicated successfully" });
-      navigate(`/docs/${newDoc.id}`);
-    },
-    onError: () => {
-      toast({ title: "Failed to duplicate document", variant: "destructive" });
-    },
-  });
-
-  // Favorite mutation
-  const favoriteMutation = useMutation({
-    mutationFn: async (isFavorite: boolean) => {
-      const response = await apiRequest("PATCH", `/api/docs/${doc.id}/favorite`, { isFavorite });
-      if (!response.ok) {
-        throw new Error("Failed to update favorite");
-      }
-      return response.json();
-    },
-    onSuccess: async (data: { isFavorite: boolean }) => {
-      await queryClient.invalidateQueries({
-        predicate: (query) =>
-          typeof query.queryKey[0] === "string" &&
-          query.queryKey[0].startsWith("/api/docs"),
-        refetchType: 'all',
-      });
-      toast({
-        title: data.isFavorite ? "Added to favorites" : "Removed from favorites",
-      });
-    },
-    onError: () => {
-      toast({ title: "Failed to update favorite", variant: "destructive" });
-    },
-  });
+  // Wrap rename mutation to close dialog on success
+  const handleRenameSubmit = useCallback((title: string) => {
+    mutations.rename.mutate(title, {
+      onSuccess: () => setRenameDialogOpen(false),
+    });
+  }, [mutations.rename]);
 
   // Favorite toggle
-  const handleFavoriteToggle = () => {
+  const handleFavoriteToggle = useCallback(() => {
     const newValue = !(doc.isFavorite ?? false);
-    favoriteMutation.mutate(newValue);
+    mutations.favorite.mutate(newValue);
     setDropdownOpen(false);
-  };
+  }, [doc.isFavorite, mutations.favorite]);
 
   // Protect toggle - hardcoded UI only for now
-  const handleProtectToggle = (checked: boolean) => {
+  const handleProtectToggle = useCallback((checked: boolean) => {
     setIsProtected(checked);
     toast({
       title: checked ? "Document protected" : "Document unprotected",
     });
-  };
+  }, [toast]);
 
   // Copy link handler
-  const handleCopyLink = () => {
+  const handleCopyLink = useCallback(() => {
     const url = `${window.location.origin}/docs/${doc.id}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link copied to clipboard" });
     setDropdownOpen(false);
-  };
+  }, [doc.id, toast]);
 
   // Handlers
-  const handleRename = () => {
+  const handleRename = useCallback(() => {
     setNewTitle(doc.title);
     setRenameDialogOpen(true);
     setDropdownOpen(false);
-  };
+  }, [doc.title]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     setDeleteDialogOpen(true);
     setDropdownOpen(false);
-  };
+  }, []);
 
-  const handleDuplicate = () => {
-    duplicateMutation.mutate();
+  const handleDuplicate = useCallback(() => {
+    mutations.duplicate.mutate();
     setDropdownOpen(false);
-  };
+  }, [mutations.duplicate]);
 
   const handleSharingClick = () => {
     setDropdownOpen(false);
@@ -222,8 +129,9 @@ export function DocSettingsDropdown({
                 e.preventDefault();
                 e.stopPropagation();
               }}
+              aria-label="Document options"
             >
-              <MoreHorizontal className="h-4 w-4" />
+              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
             </Button>
           )}
         </DropdownMenuTrigger>
@@ -262,27 +170,27 @@ export function DocSettingsDropdown({
 
           <DropdownMenuItem
             onClick={handleFavoriteToggle}
-            disabled={favoriteMutation.isPending}
+            disabled={mutations.favorite.isPending}
             className="gap-3 sm:gap-2.5 h-11 sm:h-8 px-3 sm:px-2.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md focus:bg-gray-100 dark:focus:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700"
           >
             {doc.isFavorite ? (
-              <Star className="h-5 w-5 sm:h-4 sm:w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+              <Star className="h-5 w-5 sm:h-4 sm:w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" aria-hidden="true" />
             ) : (
-              <Star className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+              <Star className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" aria-hidden="true" />
             )}
             <span className="text-[15px] sm:text-sm text-gray-700 dark:text-gray-300">
-              {favoriteMutation.isPending ? "Updating..." : doc.isFavorite ? "Remove favorite" : "Add to favorites"}
+              {mutations.favorite.isPending ? "Updating..." : doc.isFavorite ? "Remove favorite" : "Add to favorites"}
             </span>
           </DropdownMenuItem>
 
           <DropdownMenuItem
             onClick={handleDuplicate}
-            disabled={duplicateMutation.isPending}
+            disabled={mutations.duplicate.isPending}
             className="gap-3 sm:gap-2.5 h-11 sm:h-8 px-3 sm:px-2.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md focus:bg-gray-100 dark:focus:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700"
           >
-            <Copy className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+            <Copy className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" aria-hidden="true" />
             <span className="text-[15px] sm:text-sm text-gray-700 dark:text-gray-300">
-              {duplicateMutation.isPending ? "Duplicating..." : "Duplicate"}
+              {mutations.duplicate.isPending ? "Duplicating..." : "Duplicate"}
             </span>
           </DropdownMenuItem>
 
@@ -364,7 +272,7 @@ export function DocSettingsDropdown({
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === "Enter" && newTitle.trim()) {
-                  renameMutation.mutate(newTitle.trim());
+                  handleRenameSubmit(newTitle.trim());
                 }
               }}
             />
@@ -378,18 +286,18 @@ export function DocSettingsDropdown({
               Cancel
             </Button>
             <Button
-              onClick={() => renameMutation.mutate(newTitle.trim())}
-              disabled={!newTitle.trim() || renameMutation.isPending}
+              onClick={() => handleRenameSubmit(newTitle.trim())}
+              disabled={!newTitle.trim() || mutations.rename.isPending}
               className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 h-11 sm:h-10 text-[15px] sm:text-sm w-full sm:w-auto"
             >
-              {renameMutation.isPending ? (
+              {mutations.rename.isPending ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" aria-hidden="true" />
                   Renaming...
                 </>
               ) : (
                 <>
-                  <Check className="h-4 w-4 mr-2" />
+                  <Check className="h-4 w-4 mr-2" aria-hidden="true" />
                   Rename
                 </>
               )}
@@ -421,18 +329,18 @@ export function DocSettingsDropdown({
             </Button>
             <Button
               variant="destructive"
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
+              onClick={() => mutations.delete.mutate()}
+              disabled={mutations.delete.isPending}
               className="bg-red-600 hover:bg-red-700 active:bg-red-800 h-11 sm:h-10 text-[15px] sm:text-sm w-full sm:w-auto"
             >
-              {deleteMutation.isPending ? (
+              {mutations.delete.isPending ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" aria-hidden="true" />
                   Deleting...
                 </>
               ) : (
                 <>
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
                   Delete
                 </>
               )}

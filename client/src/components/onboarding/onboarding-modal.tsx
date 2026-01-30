@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChevronLeft } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -39,15 +39,30 @@ export function OnboardingModal({ open, userName }: OnboardingModalProps) {
 
   const completeOnboardingMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("POST", "/api/onboarding/complete", data);
+      const response = await fetch("/api/auth/onboarding/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || "Failed to complete onboarding");
+      }
+      return response.json();
     },
-    onSuccess: async () => {
-      // Wait for query invalidation and refetch to complete before redirecting
+    onSuccess: async (data) => {
+      // Update the cache with the returned user data that has hasCompletedOnboarding: true
+      if (data.user) {
+        queryClient.setQueryData(["/api/auth/user"], data.user);
+      }
+
+      // Also invalidate and refetch to ensure fresh data
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
 
       // Small delay to ensure state updates are processed
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
 
       // Use hard redirect to ensure clean state
       window.location.href = "/";
@@ -63,15 +78,30 @@ export function OnboardingModal({ open, userName }: OnboardingModalProps) {
 
   const skipOnboardingMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/onboarding/skip", {});
+      const response = await fetch("/api/auth/onboarding/skip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || "Failed to skip onboarding");
+      }
+      return response.json();
     },
-    onSuccess: async () => {
-      // Wait for query invalidation and refetch to complete before redirecting
+    onSuccess: async (data) => {
+      // Update the cache with the returned user data that has hasCompletedOnboarding: true
+      if (data.user) {
+        queryClient.setQueryData(["/api/auth/user"], data.user);
+      }
+
+      // Also invalidate and refetch to ensure fresh data
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
 
       // Small delay to ensure state updates are processed
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
 
       // Use hard redirect to ensure clean state
       window.location.href = "/";

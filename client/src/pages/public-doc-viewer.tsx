@@ -142,9 +142,38 @@ export default function PublicDocViewerPage() {
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto relative">
+        {/* Subtle watermark overlay */}
+        <div
+          className="fixed bottom-20 right-4 z-20 pointer-events-none select-none opacity-40"
+          aria-hidden="true"
+        >
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs text-gray-500 dark:text-gray-400 shadow-sm border border-gray-200 dark:border-gray-700">
+            <Globe className="h-3 w-3" />
+            <span>Shared publicly by {document.ownerName}</span>
+          </div>
+        </div>
+
         <div className={cn("mx-auto py-8 px-4", getWidthClass())}>
-          <div className={cn(getFontClass(), getFontSizeClass())}>
+          {/* Read-only content wrapper - prevents text selection and interactions */}
+          <div
+            className={cn(
+              getFontClass(),
+              getFontSizeClass(),
+              "select-none" // Prevent text selection for cleaner read-only experience
+            )}
+            onCopy={(e) => {
+              // Allow copy but add attribution
+              const selection = window.getSelection()?.toString() || "";
+              if (selection) {
+                e.clipboardData?.setData(
+                  "text/plain",
+                  `${selection}\n\n— Shared from "${document.title}" by ${document.ownerName} via NexusTrack Docs`
+                );
+                e.preventDefault();
+              }
+            }}
+          >
             <RichTextEditor
               content={document.content}
               onChange={() => {}}

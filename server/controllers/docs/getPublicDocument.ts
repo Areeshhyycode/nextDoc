@@ -1,48 +1,67 @@
-import type { Request, Response } from "express";
-import { storage } from "../../storage";
-
 /**
- * Get document by public token (no auth required)
+ * Get Public Document Handler
+ *
  * GET /api/public/docs/:token
+ *
+ * Production-grade implementation:
+ * - No authentication required
+ * - Validates token format
+ * - Checks expiry and returns 410 Gone for expired links
+ * - Logs access for analytics (document ID, timestamp, IP)
+ * - Returns appropriate cache headers
+ * - Rate limited to prevent brute-force attacks
  */
+
+import type { Request, Response } from "express";
+import { publicDocumentService, PublicDocumentError } from "../../services/publicDocumentService";
+import { getClientIp } from "../../middleware/rateLimiter";
+
 export async function getPublicDocumentHandler(req: Request, res: Response) {
   try {
     const { token } = req.params;
-    console.log("[PublicDoc] Fetching document with token:", token);
 
-    const doc = await storage.getDocumentByPublicToken(token);
-    if (!doc) {
-      console.log("[PublicDoc] Document not found for token:", token);
-      return res.status(404).json({ message: "Document not found" });
-    }
+    // Get client information for logging
+    const clientIp = getClientIp(req);
+    const userAgent = req.headers["user-agent"] || "unknown";
 
-    if (!doc.publicLinkEnabled) {
-      console.log("[PublicDoc] Public link is disabled for document:", doc.id);
-      return res.status(403).json({ message: "Public link is disabled for this document" });
-    }
+    // Use service to get document (handles validation, expiry, logging)
+    const document = await publicDocumentService.getPublicDocument(token, {
+      ip: clientIp,
+      userAgent,
+    });
 
-    // Get owner info for display
-    const owner = await storage.getUser(doc.ownerId);
-    const ownerName = owner?.displayName || "Unknown";
+    // Set cache headers for better performance
+    const cacheHeaders = publicDocumentService.getCacheHeaders();
+    Object.entries(cacheHeaders).forEach(([key, value]) => {
+      res.setHeader(key, value);
+    });
 
-    console.log("[PublicDoc] Returning document:", doc.id, "title:", doc.title);
-
-    // Return document with page styles and owner name
+    // Return document data
     res.json({
-      id: doc.id,
-      title: doc.title,
-      content: doc.content,
-      pageStyles: {
-        fontStyle: doc.fontStyle || "system",
-        fontSize: doc.fontSize || "default",
-        pageWidth: doc.pageWidth || "default",
-        showLastModified: doc.showLastModified ?? true,
-      },
-      updatedAt: doc.updatedAt,
-      createdAt: doc.createdAt,
-      ownerName,
+      id: document.id,
+      title: document.title,
+      content: document.content,
+      pageStyles: document.pageStyles,
+      updatedAt: document.updatedAt,
+      createdAt: document.createdAt,
+      ownerName: document.ownerName,
+      expiresAt: document.expiresAt,
+      // Always read-only for public documents
+      isReadOnly: true,
     });
   } catch (error) {
+    if (error instanceof PublicDocumentError) {
+      // Return appropriate status codes
+      // 400 - Invalid token format
+      // 403 - Public link disabled
+      // 404 - Document not found
+      // 410 - Link expired (Gone)
+      return res.status(error.statusCode).json({
+        message: error.message,
+        code: error.statusCode === 410 ? "LINK_EXPIRED" : undefined,
+      });
+    }
+
     console.error("Error fetching public document:", error);
     res.status(500).json({ message: "Failed to fetch document" });
   }

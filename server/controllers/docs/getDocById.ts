@@ -50,7 +50,21 @@ export async function getDocByIdHandler(req: Request, res: Response) {
       profilePicture: owner.profilePicture,
     } : null;
 
-    res.json({ ...doc, userPermission, owner: ownerInfo });
+    // Fetch last updater information (if document has been updated by someone)
+    let lastUpdaterInfo = null;
+    if (doc.lastUpdatedBy) {
+      const lastUpdater = await storage.getUser(doc.lastUpdatedBy);
+      if (lastUpdater) {
+        lastUpdaterInfo = {
+          id: lastUpdater.id,
+          displayName: lastUpdater.displayName,
+          email: lastUpdater.email,
+          profilePicture: lastUpdater.profilePicture,
+        };
+      }
+    }
+
+    res.json({ ...doc, userPermission, owner: ownerInfo, lastUpdater: lastUpdaterInfo });
   } catch (error) {
     console.error("Error fetching document:", error);
     res.status(500).json({ message: "Failed to fetch document" });

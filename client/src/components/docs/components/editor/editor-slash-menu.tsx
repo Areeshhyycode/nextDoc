@@ -36,7 +36,16 @@ type BlockType =
   | 'numbered'
   | 'checklist'
   | 'divider'
-  | 'table'
+  | 'table-2x2'
+  | 'table-2x3'
+  | 'table-3x2'
+  | 'table-3x3'
+  | 'table-3x4'
+  | 'table-4x3'
+  | 'table-4x4'
+  | 'table-3x5'
+  | 'table-5x3'
+  | 'table-5x5'
   | '2-column'
   | 'code'
   | 'quote';
@@ -73,8 +82,35 @@ function insertBlock(editor: Editor, type: BlockType, onClose: () => void) {
     case 'divider':
       editor.chain().focus().setHorizontalRule().run();
       break;
-    case 'table':
+    case 'table-2x2':
+      editor.chain().focus().insertTable({ rows: 2, cols: 2, withHeaderRow: true }).run();
+      break;
+    case 'table-2x3':
+      editor.chain().focus().insertTable({ rows: 2, cols: 3, withHeaderRow: true }).run();
+      break;
+    case 'table-3x2':
+      editor.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run();
+      break;
+    case 'table-3x3':
       editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+      break;
+    case 'table-3x4':
+      editor.chain().focus().insertTable({ rows: 3, cols: 4, withHeaderRow: true }).run();
+      break;
+    case 'table-4x3':
+      editor.chain().focus().insertTable({ rows: 4, cols: 3, withHeaderRow: true }).run();
+      break;
+    case 'table-4x4':
+      editor.chain().focus().insertTable({ rows: 4, cols: 4, withHeaderRow: true }).run();
+      break;
+    case 'table-3x5':
+      editor.chain().focus().insertTable({ rows: 3, cols: 5, withHeaderRow: true }).run();
+      break;
+    case 'table-5x3':
+      editor.chain().focus().insertTable({ rows: 5, cols: 3, withHeaderRow: true }).run();
+      break;
+    case 'table-5x5':
+      editor.chain().focus().insertTable({ rows: 5, cols: 5, withHeaderRow: true }).run();
       break;
     case '2-column':
       editor.chain().focus().insertContent('<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;"><div style="border: 1px solid #e5e7eb; border-radius: 0.375rem; padding: 1rem;"><p>Column 1</p></div><div style="border: 1px solid #e5e7eb; border-radius: 0.375rem; padding: 1rem;"><p>Column 2</p></div></div>').run();
@@ -123,9 +159,23 @@ const slashCommands: SlashCommandCategory[] = [
     ],
   },
   {
-    category: 'SUGGESTIONS',
+    category: 'TABLE',
     items: [
-      { icon: <TableIcon className="h-4 w-4" />, label: 'Table', type: 'table' },
+      { icon: <TableIcon className="h-4 w-4" />, label: 'Table 2x2', type: 'table-2x2' },
+      { icon: <TableIcon className="h-4 w-4" />, label: 'Table 2x3', type: 'table-2x3' },
+      { icon: <TableIcon className="h-4 w-4" />, label: 'Table 3x2', type: 'table-3x2' },
+      { icon: <TableIcon className="h-4 w-4" />, label: 'Table 3x3', type: 'table-3x3' },
+      { icon: <TableIcon className="h-4 w-4" />, label: 'Table 3x4', type: 'table-3x4' },
+      { icon: <TableIcon className="h-4 w-4" />, label: 'Table 4x3', type: 'table-4x3' },
+      { icon: <TableIcon className="h-4 w-4" />, label: 'Table 4x4', type: 'table-4x4' },
+      { icon: <TableIcon className="h-4 w-4" />, label: 'Table 3x5', type: 'table-3x5' },
+      { icon: <TableIcon className="h-4 w-4" />, label: 'Table 5x3', type: 'table-5x3' },
+      { icon: <TableIcon className="h-4 w-4" />, label: 'Table 5x5', type: 'table-5x5' },
+    ],
+  },
+  {
+    category: 'LAYOUT',
+    items: [
       { icon: <Columns2 className="h-4 w-4" />, label: 'Columns', type: '2-column' },
     ],
   },
