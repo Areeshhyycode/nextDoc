@@ -2,12 +2,7 @@ import type { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { requireAuth } from "../auth";
 
-/**
- * Document Name Controller
- * Handles unique document name validation and suggestion
- */
 
-// Check if document name is unique
 async function checkDocumentNameHandler(req: Request, res: Response) {
   try {
     const userId = (req.user as any)?.id;
@@ -34,7 +29,6 @@ async function checkDocumentNameHandler(req: Request, res: Response) {
       });
     }
 
-    // Check if name exists (case-insensitive)
     const isUnique = await storage.isDocumentNameUnique(
       trimmedTitle,
       typeof excludeDocId === "string" ? excludeDocId : undefined
@@ -47,7 +41,6 @@ async function checkDocumentNameHandler(req: Request, res: Response) {
         message: "Document name is available"
       });
     } else {
-      // Generate a unique suggestion
       const suggestedTitle = await storage.generateUniqueDocumentName(trimmedTitle);
 
       return res.status(200).json({
@@ -67,7 +60,6 @@ async function checkDocumentNameHandler(req: Request, res: Response) {
   }
 }
 
-// Generate a unique document name from given title
 async function generateUniqueNameHandler(req: Request, res: Response) {
   try {
     const userId = (req.user as any)?.id;

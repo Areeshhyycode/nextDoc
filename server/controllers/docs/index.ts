@@ -43,6 +43,10 @@ export { getRootDocumentHandler } from "./getRootDocument";
 // Document Protection
 export { protectDocumentHandler } from "./protectDocument";
 
+// Document Import
+export { validateFileHandler } from "./validateFile";
+export { importDocumentHandler } from "./importDocument";
+
 // Import handlers for route registration
 import { getAllDocsHandler } from "./getAllDocs";
 import { getDocsPaginatedHandler } from "./getDocsPaginated";
