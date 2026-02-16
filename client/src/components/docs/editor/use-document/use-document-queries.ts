@@ -14,6 +14,15 @@ export function useDocumentFetch(docId: string | null, isNewDoc: boolean) {
     },
   });
 
+  // Auto-refresh document metadata every 10s so "Last updated by" stays fresh
+  useEffect(() => {
+    if (isNewDoc || !docId) return;
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/docs", docId] });
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [docId, isNewDoc]);
+
   const hasNoAccess = (documentError as any)?.status === 403;
 
   return { document, isLoading, hasNoAccess };

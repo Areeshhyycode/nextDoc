@@ -170,7 +170,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] max-w-[540px] sm:max-w-[540px] p-0 gap-0 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
+      <DialogContent className="w-[90vw] max-w-[540px] max-h-[80vh] overflow-y-auto p-0 gap-0 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 rounded-lg">
         <VisuallyHidden>
           <DialogTitle>Import Document</DialogTitle>
           <DialogDescription>Upload a PDF or DOCX file to import as a document</DialogDescription>

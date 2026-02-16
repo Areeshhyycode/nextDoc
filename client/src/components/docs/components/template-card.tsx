@@ -1,10 +1,3 @@
-/**
- * Template Card Component
- *
- * Reusable card for displaying template options.
- * Fully accessible with keyboard navigation support.
- */
-
 import React from "react";
 
 interface TemplateCardProps {
@@ -26,7 +19,7 @@ export function TemplateCard({
     <button
       onClick={onClick}
       aria-label={ariaLabel || `Use ${title} template`}
-      className="flex flex-row items-center gap-2 sm:gap-2.5 p-2 sm:p-2.5 bg-white dark:bg-gray-800/50 border-2 border-gray-200 dark:border-gray-700/50 rounded-lg sm:rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md active:scale-[0.98] transition-all text-left w-full group touch-manipulation focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+      className="flex items-center gap-3 p-3 sm:p-3.5 bg-white dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 rounded-xl hover:border-teal-300 dark:hover:border-teal-600 hover:bg-teal-50/30 dark:hover:bg-teal-900/10 active:scale-[0.98] transition-all text-left w-full group focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
     >
       <div
         className="flex-shrink-0 group-hover:scale-105 transition-transform"
@@ -35,10 +28,10 @@ export function TemplateCard({
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-bold text-gray-900 dark:text-white text-[11px] sm:text-sm mb-0.5 sm:mb-1 leading-tight">
+        <h3 className="font-medium text-gray-900 dark:text-white text-sm leading-tight">
           {title}
         </h3>
-        <p className="text-[9px] sm:text-xs text-gray-600 dark:text-gray-400 line-clamp-1 sm:line-clamp-2 leading-snug font-medium">
+        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mt-0.5">
           {description}
         </p>
       </div>

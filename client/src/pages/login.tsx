@@ -122,7 +122,7 @@ export default function Login() {
 
   if (showForgotPassword) {
     return (
-      <AuthPageLayout theme="blue">
+      <AuthPageLayout theme="teal">
         <AuthCard
           title="Reset Password"
           subtitle="Enter your email to receive a reset link"
@@ -184,14 +184,14 @@ export default function Login() {
   }
 
   return (
-    <AuthPageLayout theme="blue">
+    <AuthPageLayout theme="teal">
       <AuthCard
         icon={
-          <div className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            PMO
+          <div className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 dark:from-teal-400 dark:to-emerald-400 bg-clip-text text-transparent">
+            NextDocs
           </div>
         }
-        title="Project Management Dashboard"
+        title="Document Collaboration"
         titleClassName="text-lg font-normal text-gray-600 dark:text-gray-400"
         subtitle="Sign in with your company account"
       >
@@ -239,7 +239,7 @@ export default function Login() {
               <div className="space-y-3">
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-xl"
+                  className="w-full h-12 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-medium rounded-xl"
                   disabled={loginMutation.isPending}
                   data-testid="button-login"
                 >
@@ -313,7 +313,7 @@ export default function Login() {
 
               <Button
                 type="submit"
-                className="w-full h-12 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium rounded-xl"
+                className="w-full h-12 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-medium rounded-xl"
                 disabled={signupMutation.isPending}
                 data-testid="button-signup"
               >

@@ -7,6 +7,8 @@ const isWithinDateRange = (date: string | Date | null | undefined, range: Filter
   if (!date || range === 'all') return true;
 
   const docDate = new Date(date);
+  if (isNaN(docDate.getTime())) return true; // Don't filter out docs with invalid dates
+
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -43,9 +45,10 @@ export function useDocumentFiltering({
 }: UseDocumentFilteringParams): DocumentWithOwner[] {
   return useMemo(() => {
     const filtered = documents.filter(doc => {
+      const query = searchQuery.toLowerCase();
       const matchesSearch = !searchQuery ||
-        doc.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        doc.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+        doc.title?.toLowerCase().includes(query) ||
+        doc.tags?.some(tag => tag?.toLowerCase().includes(query));
 
       const matchesCategory = filters.categories.length === 0 ||
         filters.categories.includes(doc.category || 'blank');
@@ -57,6 +60,11 @@ export function useDocumentFiltering({
     });
 
     return [...filtered].sort((a, b) => {
+      // Pinned documents always come first
+      const aPinned = a.isPinned ? 1 : 0;
+      const bPinned = b.isPinned ? 1 : 0;
+      if (aPinned !== bPinned) return bPinned - aPinned;
+
       let comparison = 0;
 
       switch (sortField) {

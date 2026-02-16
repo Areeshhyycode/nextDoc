@@ -71,9 +71,9 @@ export default function PublicDocViewerPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50/80 dark:bg-[#0a0f18] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
+          <Loader2 className="h-8 w-8 animate-spin text-teal-500 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Loading document...</p>
         </div>
       </div>
@@ -83,7 +83,7 @@ export default function PublicDocViewerPage() {
   // Error state
   if (error || !document) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50/80 dark:bg-[#0a0f18] flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="h-8 w-8 text-red-500 dark:text-red-400" />
@@ -113,12 +113,12 @@ export default function PublicDocViewerPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gray-50/80 dark:bg-[#0a0f18] flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+      <header className="sticky top-0 z-10 bg-white dark:bg-[#161b22] border-b border-slate-200 dark:border-slate-700/50 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-violet-600 rounded-lg flex items-center justify-center">
               <FileText className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -134,7 +134,7 @@ export default function PublicDocViewerPage() {
           </div>
 
           {/* Public badge */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-xs font-medium">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-full text-xs font-medium">
             <Globe className="h-3.5 w-3.5" />
             <span>Public Document</span>
           </div>
@@ -184,7 +184,7 @@ export default function PublicDocViewerPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-4">
+      <footer className="bg-white dark:bg-[#161b22] border-t border-slate-200 dark:border-slate-700/50 py-4">
         <div className="max-w-6xl mx-auto px-4 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
           <span>Shared via NexusTrack Docs</span>
         </div>

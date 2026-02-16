@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { storage } from "../../storage";
+import { maybeCreateAutoVersion } from "./versionHelper";
 
 /**
  * Update a document
@@ -17,16 +18,37 @@ export async function updateDocHandler(req: Request, res: Response) {
       return;
     }
 
+    if (doc.deletedAt) {
+      res.status(400).json({ message: "Cannot edit a document that is in trash" });
+      return;
+    }
+
     // Check user's permission
     let canEdit = false;
-    if (doc.ownerId === userId) {
+    const isOwner = doc.ownerId === userId;
+    if (isOwner) {
       // Owner can always edit
       canEdit = true;
     } else {
-      // Check if user has edit or edit_comment permission via sharing
-      const share = await storage.getDocumentShareForUser(docId, userId);
-      if (share && (share.permission === "edit" || share.permission === "edit_comment")) {
-        canEdit = true;
+      // If document is protected, only the owner can edit
+      if (doc.isProtected) {
+        res.status(403).json({ message: "This document is protected. Only the owner can edit it." });
+        return;
+      }
+
+      // Check if user has edit or edit_comment permission anywhere in the document tree
+      // For pages (child documents), also check the root document's owner
+      if (doc.parentDocumentId) {
+        const rootDoc = await storage.getRootDocument(docId);
+        if (rootDoc && rootDoc.ownerId === userId) {
+          canEdit = true;
+        }
+      }
+      if (!canEdit) {
+        const share = await storage.getShareInDocumentTree(docId, userId);
+        if (share && (share.permission === "edit" || share.permission === "edit_comment")) {
+          canEdit = true;
+        }
       }
     }
 
@@ -60,6 +82,19 @@ export async function updateDocHandler(req: Request, res: Response) {
       tableHeaderBg,
       showPageOutline
     } = req.body;
+
+    // Only the owner can rename (change title) of documents/pages
+    if (title !== undefined && !isOwner) {
+      // For pages, also check if user is the root document owner
+      let isRootOwner = false;
+      if (doc.parentDocumentId) {
+        const rootDoc = await storage.getRootDocument(docId);
+        isRootOwner = rootDoc?.ownerId === userId;
+      }
+      if (!isRootOwner) {
+        return res.status(403).json({ message: "Only the document owner can rename this document" });
+      }
+    }
 
     // If title is being updated, check for uniqueness (exclude current doc)
     if (title !== undefined) {
@@ -107,6 +142,11 @@ export async function updateDocHandler(req: Request, res: Response) {
     const shouldUpdateTimestamp = title !== undefined || content !== undefined;
     if (shouldUpdateTimestamp && userId) {
       updates.lastUpdatedBy = userId;
+    }
+
+    // Auto-version: fire-and-forget so it never blocks the save
+    if (content !== undefined && doc) {
+      maybeCreateAutoVersion(doc, userId).catch(() => {});
     }
 
     const updatedDoc = await storage.updateDocument(req.params.id, updates, shouldUpdateTimestamp);

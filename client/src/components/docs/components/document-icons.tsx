@@ -1,7 +1,7 @@
 // Project Overview Icon - Document with timeline/milestones
 export function ProjectOverviewIcon() {
   return (
-    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden p-1.5">
+    <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden p-1 sm:p-1.5">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 350 350"
@@ -21,13 +21,13 @@ export function ProjectOverviewIcon() {
         <rect x="140" y="60" width="180" height="190" rx="12" fill="#FFFFFF" stroke="#4A5568" strokeWidth="6"/>
 
         {/* Flag icon */}
-        <path d="M180 110 L180 150 M180 110 L220 120 L180 130 Z" fill="#60A5FA" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M180 110 L180 150 M180 110 L220 120 L180 130 Z" fill="#818CF8" stroke="#6366F1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
 
         {/* Text lines */}
-        <line x1="200" y1="120" x2="280" y2="120" stroke="#93C5FD" strokeWidth="8" strokeLinecap="round"/>
-        <line x1="200" y1="140" x2="260" y2="140" stroke="#93C5FD" strokeWidth="8" strokeLinecap="round"/>
-        <line x1="160" y1="170" x2="300" y2="170" stroke="#93C5FD" strokeWidth="8" strokeLinecap="round"/>
-        <line x1="160" y1="195" x2="300" y2="195" stroke="#93C5FD" strokeWidth="8" strokeLinecap="round"/>
+        <line x1="200" y1="120" x2="280" y2="120" stroke="#A5B4FC" strokeWidth="8" strokeLinecap="round"/>
+        <line x1="200" y1="140" x2="260" y2="140" stroke="#A5B4FC" strokeWidth="8" strokeLinecap="round"/>
+        <line x1="160" y1="170" x2="300" y2="170" stroke="#A5B4FC" strokeWidth="8" strokeLinecap="round"/>
+        <line x1="160" y1="195" x2="300" y2="195" stroke="#A5B4FC" strokeWidth="8" strokeLinecap="round"/>
 
         {/* Timeline circles at bottom */}
         <circle cx="190" cy="225" r="12" fill="#FFFFFF" stroke="#4A5568" strokeWidth="5"/>
@@ -47,7 +47,7 @@ export function ProjectOverviewIcon() {
 // Meeting Notes Icon - Documents with checklist and clock
 export function MeetingNotesIcon() {
   return (
-    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-50 to-orange-100 border border-amber-200 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden p-1.5">
+    <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-amber-50 to-orange-100 border border-amber-200 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden p-1 sm:p-1.5">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 350 350"
@@ -67,26 +67,26 @@ export function MeetingNotesIcon() {
         <rect x="110" y="40" width="200" height="220" rx="12" fill="#FFFFFF" stroke="#4A5568" strokeWidth="6"/>
 
         {/* Checkbox 1 with checkmark - blue */}
-        <rect x="130" y="70" width="35" height="35" rx="6" fill="#60A5FA" stroke="#3B82F6" strokeWidth="3"/>
+        <rect x="130" y="70" width="35" height="35" rx="6" fill="#818CF8" stroke="#6366F1" strokeWidth="3"/>
         <path d="M140 87 L148 95 L158 80" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
 
         {/* Text lines next to checkbox 1 */}
-        <line x1="175" y1="80" x2="270" y2="80" stroke="#93C5FD" strokeWidth="6" strokeLinecap="round"/>
-        <line x1="175" y1="95" x2="230" y2="95" stroke="#93C5FD" strokeWidth="6" strokeLinecap="round"/>
+        <line x1="175" y1="80" x2="270" y2="80" stroke="#A5B4FC" strokeWidth="6" strokeLinecap="round"/>
+        <line x1="175" y1="95" x2="230" y2="95" stroke="#A5B4FC" strokeWidth="6" strokeLinecap="round"/>
 
         {/* Checkbox 2 with checkmark */}
-        <rect x="130" y="125" width="35" height="35" rx="6" fill="#60A5FA" stroke="#3B82F6" strokeWidth="3"/>
+        <rect x="130" y="125" width="35" height="35" rx="6" fill="#818CF8" stroke="#6366F1" strokeWidth="3"/>
         <path d="M140 142 L148 150 L158 135" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
 
         {/* Text lines next to checkbox 2 */}
-        <line x1="175" y1="135" x2="270" y2="135" stroke="#93C5FD" strokeWidth="6" strokeLinecap="round"/>
-        <line x1="175" y1="150" x2="250" y2="150" stroke="#93C5FD" strokeWidth="6" strokeLinecap="round"/>
+        <line x1="175" y1="135" x2="270" y2="135" stroke="#A5B4FC" strokeWidth="6" strokeLinecap="round"/>
+        <line x1="175" y1="150" x2="250" y2="150" stroke="#A5B4FC" strokeWidth="6" strokeLinecap="round"/>
 
         {/* Checkbox 3 - larger checkmark */}
         <path d="M130 190 L155 215 L185 175" stroke="#60A5FA" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
 
         {/* Text lines next to large checkmark */}
-        <line x1="200" y1="190" x2="280" y2="190" stroke="#93C5FD" strokeWidth="6" strokeLinecap="round"/>
+        <line x1="200" y1="190" x2="280" y2="190" stroke="#A5B4FC" strokeWidth="6" strokeLinecap="round"/>
 
         {/* Clock circle - pink/rose background */}
         <circle cx="265" cy="225" r="55" fill="#FFC1E3"/>
@@ -105,8 +105,8 @@ export function MeetingNotesIcon() {
         <circle cx="240" cy="225" r="4" fill="#2D3748"/>
 
         {/* Checkmark badge - blue circle with white check */}
-        <circle cx="215" cy="280" r="35" fill="#60A5FA"/>
-        <circle cx="215" cy="280" r="28" fill="#3B82F6" stroke="#FFFFFF" strokeWidth="4"/>
+        <circle cx="215" cy="280" r="35" fill="#818CF8"/>
+        <circle cx="215" cy="280" r="28" fill="#6366F1" stroke="#FFFFFF" strokeWidth="4"/>
         <path d="M205 280 L212 287 L225 270" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
 
         {/* Small decorative dots */}

@@ -29,24 +29,23 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Trust proxy for Replit deployments
+// Trust proxy for deployments
 app.set('trust proxy', 1);
 
 // Session configuration
-const isProduction = process.env.NODE_ENV === 'production';
-const isReplit = process.env.REPLIT_SLUG !== undefined;
-
-app.use(session({
+const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Disable secure cookies for development
-    httpOnly: true, // Prevent XSS attacks
-    sameSite: 'lax', // Allow cookies
+    secure: false,
+    httpOnly: true,
+    sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
-}));
+});
+
+app.use(sessionMiddleware);
 
 // Passport middleware
 app.use(passport.initialize());
@@ -75,7 +74,7 @@ app.use((req, res, next) => {
       }
 
       if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+        logLine = logLine.slice(0, 79) + "\u2026";
       }
 
       log(logLine);
@@ -89,7 +88,7 @@ app.use((req, res, next) => {
   // Run migrations before starting server
   await runMigrations();
 
-  const server = await registerRoutes(app);
+  const server = await registerRoutes(app, sessionMiddleware);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -108,11 +107,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
+  const port = parseInt(process.env.PORT || '3000', 10);
   server.listen({
     port,
     host: "0.0.0.0",

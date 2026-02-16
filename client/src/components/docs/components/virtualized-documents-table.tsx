@@ -14,12 +14,13 @@ import { DesktopDocumentRow } from "./virtualized-docs/DesktopDocumentRow";
 
 interface VirtualizedDocumentsTableProps {
   documents: DocumentWithOwner[];
+  duplicateDocIds?: Set<string>;
 }
 
 const ROW_HEIGHT_MOBILE = 85;
 const ROW_HEIGHT_DESKTOP = 52;
 
-export function VirtualizedDocumentsTable({ documents }: VirtualizedDocumentsTableProps) {
+export function VirtualizedDocumentsTable({ documents, duplicateDocIds }: VirtualizedDocumentsTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth < 768 : false
@@ -92,10 +93,12 @@ export function VirtualizedDocumentsTable({ documents }: VirtualizedDocumentsTab
               transform: `translateY(${virtualItem.start}px)`,
             };
 
+            const isDuplicate = duplicateDocIds?.has(doc.id) ?? false;
+
             return isMobile ? (
-              <MobileDocumentRow key={doc.id} doc={doc} style={style} />
+              <MobileDocumentRow key={doc.id} doc={doc} style={style} isDuplicate={isDuplicate} />
             ) : (
-              <DesktopDocumentRow key={doc.id} doc={doc} style={style} />
+              <DesktopDocumentRow key={doc.id} doc={doc} style={style} isDuplicate={isDuplicate} />
             );
           })}
         </div>
