@@ -162,7 +162,8 @@ export function EditorTopActions({
   };
 
   // Determine which menu items to show based on permissions
-  const showRename = !isNewDoc && canEditDoc && onRename;
+  // Only owner can rename documents/pages
+  const showRename = !isNewDoc && isOwner && onRename;
   const showCopyLink = !isNewDoc;
   const showDuplicate = !isNewDoc && onDuplicate;
   const showDownload = !isNewDoc;
@@ -175,7 +176,7 @@ export function EditorTopActions({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
         {/* Share Button - Only for owners */}
         {showShare && (
           <Tooltip>
@@ -184,10 +185,10 @@ export function EditorTopActions({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsShareModalOpen(true)}
-                className="h-8 px-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                className="h-8 px-1.5 sm:px-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               >
-                <Share2 className="h-4 w-4 mr-1.5" />
-                <span className="text-sm">Share</span>
+                <Share2 className="h-4 w-4 sm:mr-1.5" />
+                <span className="text-sm hidden sm:inline">Share</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>Share this document</TooltipContent>
@@ -243,42 +244,42 @@ export function EditorTopActions({
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="w-56">
                       <DropdownMenuItem onClick={() => handleExport("docx")}>
-                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-600 flex-shrink-0" />
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-teal-600 flex-shrink-0" />
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm">Word Document</span>
                           <span className="block text-xs text-gray-500">.docx</span>
                         </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExport("docm")}>
-                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-500 flex-shrink-0" />
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-teal-500 flex-shrink-0" />
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm">Word Macro-Enabled Document</span>
                           <span className="block text-xs text-gray-500">.docm</span>
                         </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExport("word")}>
-                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-400 flex-shrink-0" />
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-teal-400 flex-shrink-0" />
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm">Word 97-2003 Document</span>
                           <span className="block text-xs text-gray-500">.doc</span>
                         </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExport("dotm")}>
-                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-300 flex-shrink-0" />
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-teal-300 flex-shrink-0" />
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm">Word Macro-Enabled Template</span>
                           <span className="block text-xs text-gray-500">.dotm</span>
                         </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExport("dotx")}>
-                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-500 flex-shrink-0" />
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-teal-500 flex-shrink-0" />
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm">Word Template</span>
                           <span className="block text-xs text-gray-500">.dotx</span>
                         </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExport("dot")}>
-                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-300 flex-shrink-0" />
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-teal-300 flex-shrink-0" />
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm">Word 97-2003 Template</span>
                           <span className="block text-xs text-gray-500">.dot</span>
@@ -292,7 +293,7 @@ export function EditorTopActions({
                         </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExport("xps")}>
-                        <FileText className="h-4 w-4 mr-2 text-indigo-500 flex-shrink-0" />
+                        <FileText className="h-4 w-4 mr-2 text-teal-500 flex-shrink-0" />
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm">XPS Document</span>
                           <span className="block text-xs text-gray-500">.xps</span>
@@ -334,7 +335,7 @@ export function EditorTopActions({
                         </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExport("strict")}>
-                        <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-600 flex-shrink-0" />
+                        <FileSpreadsheet className="h-4 w-4 mr-2 text-teal-600 flex-shrink-0" />
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm">Strict Open XML Document</span>
                           <span className="block text-xs text-gray-500">.docx</span>

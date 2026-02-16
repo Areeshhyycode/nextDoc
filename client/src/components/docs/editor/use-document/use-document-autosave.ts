@@ -12,6 +12,7 @@ interface AutosaveParams {
   originalContentRef: React.MutableRefObject<string>;
   onSave: (payload: any) => void;
   onSavingStart: () => void;
+  enabled?: boolean;
 }
 
 export function useDocumentAutosave({
@@ -25,10 +26,12 @@ export function useDocumentAutosave({
   originalContentRef,
   onSave,
   onSavingStart,
+  enabled = true,
 }: AutosaveParams) {
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     if (!isNewDoc && docId && (title || content)) {
       const titleChanged = title !== originalTitleRef.current;
       const contentChanged = content !== originalContentRef.current;
@@ -57,6 +60,7 @@ export function useDocumentAutosave({
           originalContentRef.current = content;
         }
 
+        console.log('[Autosave] Firing — titleChanged:', titleChanged, 'contentChanged:', contentChanged, 'hasContent:', !!updatePayload.content);
         onSavingStart();
         onSave(updatePayload);
       }, 2000);
@@ -67,5 +71,5 @@ export function useDocumentAutosave({
         clearTimeout(autosaveTimerRef.current);
       }
     };
-  }, [title, content, tags, pageStyles, isNewDoc, docId]);
+  }, [title, content, tags, pageStyles, isNewDoc, docId, enabled]);
 }

@@ -13,14 +13,17 @@ import { TextStyle } from '@tiptap/extension-text-style';
 
 export interface EditorExtensionsOptions {
   editable: boolean;
+  collaborationExtensions?: any[];
 }
 
-export function createEditorExtensions({ editable }: EditorExtensionsOptions) {
-  return [
+export function createEditorExtensions({ editable, collaborationExtensions }: EditorExtensionsOptions) {
+  const extensions: any[] = [
     StarterKit.configure({
       heading: {
         levels: [1, 2, 3, 4, 5, 6],
       },
+      // Disable built-in undo/redo when collaboration is active (Yjs handles it)
+      undoRedo: collaborationExtensions ? false : undefined,
     }),
     TextStyle,
     FontFamily.configure({
@@ -34,26 +37,15 @@ export function createEditorExtensions({ editable }: EditorExtensionsOptions) {
     Link.extend({ name: 'customLink' }).configure({
       openOnClick: false,
       HTMLAttributes: {
-        class: 'text-blue-600 dark:text-blue-400 underline cursor-pointer',
+        class: 'text-teal-600 dark:text-teal-400 underline cursor-pointer',
       },
     }),
     Table.configure({
       resizable: true,
-      HTMLAttributes: {
-        class: 'border-collapse table-auto w-full my-4',
-      },
     }),
     TableRow,
-    TableHeader.configure({
-      HTMLAttributes: {
-        class: 'border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 font-semibold p-2 text-left',
-      },
-    }),
-    TableCell.configure({
-      HTMLAttributes: {
-        class: 'border border-gray-300 dark:border-gray-600 p-2',
-      },
-    }),
+    TableHeader,
+    TableCell,
     TaskList.configure({
       HTMLAttributes: {
         class: 'list-none p-0',
@@ -73,4 +65,11 @@ export function createEditorExtensions({ editable }: EditorExtensionsOptions) {
       showOnlyCurrent: false,
     }),
   ];
+
+  // Add pre-built collaboration extensions (built in the component that has the Yjs references)
+  if (collaborationExtensions) {
+    extensions.push(...collaborationExtensions);
+  }
+
+  return extensions;
 }

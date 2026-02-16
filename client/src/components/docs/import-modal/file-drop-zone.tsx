@@ -198,7 +198,7 @@ export function FileDropZone({
       return "border-red-500 bg-red-50 dark:bg-red-900/20";
     }
     if (dragActive) {
-      return "border-blue-500 bg-blue-50 dark:bg-blue-900/20";
+      return "border-teal-500 bg-teal-50 dark:bg-teal-900/20";
     }
     if (isValidating) {
       return "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20";

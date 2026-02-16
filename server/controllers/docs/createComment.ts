@@ -33,11 +33,16 @@ export async function createCommentHandler(req: Request, res: Response) {
       return;
     }
 
-    // Check if user has at least comment permission
-    // User can comment if they own the document or have been granted access
-    const share = await storage.getDocumentShareForUser(req.params.id, userId);
+    if (document.deletedAt) {
+      res.status(400).json({ message: "Cannot comment on a document that is in trash" });
+      return;
+    }
+
+    // Check if user has comment permission
+    // "view" and "edit" only users CANNOT comment. Only owner, comment, and edit_comment can.
+    const share = await storage.getShareInDocumentTree(req.params.id, userId);
     const hasPermission = document.ownerId === userId ||
-      (share && ['comment', 'edit_comment', 'edit'].includes(share.permission));
+      (share && ['comment', 'edit_comment'].includes(share.permission));
 
     if (!hasPermission) {
       res.status(403).json({ message: "You don't have permission to comment on this document" });

@@ -15,6 +15,8 @@ import {
   getTableContent,
   getProjectOverviewContent,
 } from "./use-document/template-content";
+import { useCollaboration, getUserColor } from "@/hooks/use-collaboration";
+import { useAuth } from "@/hooks/useAuth";
 
 export function useDocument() {
   const params = useParams<{ id: string }>();
@@ -38,6 +40,7 @@ export function useDocument() {
   const originalTitleRef = useRef<string>("");
   const originalContentRef = useRef<string>("");
   const templateLoadedRef = useRef(false);
+  const documentLoadedRef = useRef<string | null>(null);
 
   const isNewDoc = params.id === "new";
   const docId = isNewDoc ? null : params.id;
@@ -71,8 +74,24 @@ export function useDocument() {
   const { openCommentsCount } = useDocumentComments(docId, isNewDoc);
   useDocumentViewTracking(docId, isNewDoc);
 
-  const { canEdit, isViewOnly, isCommentOnly, canEditAndComment, shouldBlockEdit } =
+  const { isOwner, canEdit, isViewOnly, isCommentOnly, canEditAndComment, shouldBlockEdit } =
     useDocumentPermissions(document);
+
+  // Real-time collaboration — disabled to prevent content loss.
+  // The collaboration WebSocket was overwriting saved HTML content with empty/stale
+  // Yjs state. Autosave via HTTP handles all persistence reliably.
+  // TODO: Re-enable once Yjs ↔ HTML sync is stable.
+  const { user: currentUser } = useAuth();
+  const { ydoc, provider, isConnected: isCollaborationConnected, isSynced: isCollaborationSynced, connectedUsers } = useCollaboration({
+    documentId: docId,
+    enabled: false,
+    user: currentUser ? {
+      id: currentUser.id,
+      displayName: currentUser.displayName,
+      email: currentUser.email,
+      profilePicture: currentUser.profilePicture || null,
+    } : null,
+  });
 
   // Mutation callbacks
   const handleDuplicateError = useCallback((suggestedTitle?: string) => {
@@ -103,13 +122,15 @@ export function useDocument() {
 
   // --- Effects ---
 
-  // Load document or template
+  // Load document or template — only populate content/title on FIRST load.
+  // The 10s auto-refresh updates the document object but we must NOT overwrite
+  // the user's in-progress edits with the server version.
   useEffect(() => {
-    if (document) {
+    if (document && documentLoadedRef.current !== document.id) {
+      documentLoadedRef.current = document.id;
       setTitleInternal(document.title);
       setContentInternal(document.content || "");
       setTags(document.tags || []);
-      setLastSavedAt(document.updatedAt ? new Date(document.updatedAt) : null);
       setShowStarterOptions(false);
 
       originalTitleRef.current = document.title;
@@ -153,6 +174,10 @@ export function useDocument() {
       setShowStarterOptions(false);
       templateLoadedRef.current = true;
     }
+    // Always update lastSavedAt from server (for header display) on every refetch
+    if (document) {
+      setLastSavedAt(document.updatedAt ? new Date(document.updatedAt) : null);
+    }
   }, [document, isNewDoc, category, customTemplate]);
 
   // Hide starter options
@@ -166,7 +191,9 @@ export function useDocument() {
     if (titleRequiredError && title.trim()) setTitleRequiredError(false);
   }, [title]);
 
-  // Autosave
+  // Autosave — always enabled. Content saved via HTTP autosave in all modes.
+  // The content-sync useEffect in rich-text-editor.tsx is guarded to skip when
+  // collaboration is active, so there's no feedback loop.
   useDocumentAutosave({
     title,
     content,
@@ -178,6 +205,7 @@ export function useDocument() {
     originalContentRef,
     onSave: (payload) => updateMutation.mutate(payload),
     onSavingStart: () => setIsSaving(true),
+    enabled: true,
   });
 
   // --- Actions ---
@@ -264,6 +292,17 @@ export function useDocument() {
     }
   };
 
+  // Build collaboration prop for the editor — only when the provider has synced
+  // to avoid passing a half-initialized Y.Doc to the TipTap Collaboration extension
+  const collaboration = ydoc && provider && currentUser && isCollaborationSynced ? {
+    document: ydoc,
+    provider,
+    user: {
+      name: currentUser.displayName,
+      color: getUserColor(currentUser.id),
+    },
+  } : undefined;
+
   return {
     // State
     title, setTitle, content, setContent, tags, setTags,
@@ -272,7 +311,7 @@ export function useDocument() {
     openCommentsCount, duplicateError, titleRequiredError, category,
 
     // Permission states
-    canEdit, isViewOnly, isCommentOnly, canEditAndComment, hasNoAccess,
+    isOwner, canEdit, isViewOnly, isCommentOnly, canEditAndComment, hasNoAccess,
     userPermission: document?.userPermission,
 
     // Actions
@@ -281,5 +320,10 @@ export function useDocument() {
 
     // Mutation states
     isPending: createMutation.isPending,
+
+    // Real-time collaboration
+    collaboration,
+    isCollaborationConnected,
+    connectedUsers,
   };
 }

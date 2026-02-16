@@ -59,22 +59,22 @@ export function AddPageDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[90vw] sm:max-w-[425px] p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FilePlus className="h-5 w-5 text-emerald-600" />
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <FilePlus className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
             Add New Page
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             {documentTitle
               ? `Create a new page under "${documentTitle}"`
               : "Create a new sub-page in this document"
             }
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="page-title">Page Title</Label>
+        <div className="grid gap-3 sm:gap-4 py-3 sm:py-4">
+          <div className="grid gap-1.5 sm:gap-2">
+            <Label htmlFor="page-title" className="text-sm">Page Title</Label>
             <Input
               id="page-title"
               value={pageTitle}
@@ -83,21 +83,23 @@ export function AddPageDialog({
               placeholder="Enter page title..."
               autoFocus
               disabled={isSubmitting}
+              className="h-9 sm:h-10 text-sm"
             />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex-row gap-2 sm:gap-0">
           <Button
             variant="outline"
             onClick={onClose}
             disabled={isSubmitting}
+            className="flex-1 sm:flex-none h-9 sm:h-10 text-sm"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!pageTitle.trim() || isSubmitting}
-            className="bg-emerald-600 hover:bg-emerald-700"
+            className="flex-1 sm:flex-none h-9 sm:h-10 text-sm bg-emerald-600 hover:bg-emerald-700"
           >
             {isSubmitting ? (
               <>

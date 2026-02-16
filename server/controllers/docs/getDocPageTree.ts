@@ -16,10 +16,10 @@ export async function getDocPageTreeHandler(req: Request, res: Response) {
       return res.status(404).json({ message: "Document not found" });
     }
 
-    // Check if user has access (owner or shared)
+    // Check if user has access (owner or shared anywhere in the document tree)
     let hasAccess = doc.ownerId === userId;
     if (!hasAccess) {
-      const share = await storage.getDocumentShareForUser(documentId, userId);
+      const share = await storage.getShareInDocumentTree(documentId, userId);
       hasAccess = !!share;
     }
 
