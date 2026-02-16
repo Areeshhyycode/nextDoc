@@ -179,7 +179,7 @@ export function TemplatePreviewModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="w-[98vw] sm:w-[95vw] max-w-[900px] h-[90vh] sm:h-[85vh] max-h-[600px] p-0 gap-0 overflow-hidden flex flex-col bg-white dark:bg-[#1a1d21] border border-gray-200 dark:border-gray-800 rounded-lg sm:rounded-xl"
+        className="w-[94%] sm:w-[92%] md:w-[95vw] max-w-[900px] h-[80vh] sm:h-[82vh] md:h-[85vh] max-h-[700px] p-0 gap-0 overflow-hidden flex flex-col bg-white dark:bg-[#1a1d21] border border-gray-200 dark:border-gray-800 rounded-xl"
         aria-describedby={undefined}
       >
         <VisuallyHidden>
@@ -210,6 +210,9 @@ export function TemplatePreviewModal({
               isAnimating={isAnimating}
               onClose={onClose}
               onExpandSidebar={() => setSidebarCollapsed(false)}
+              pages={filteredPages}
+              selectedPageId={selectedPageId}
+              onSelectPage={handleSelectPage}
             />
 
             <TemplateFooter

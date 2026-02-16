@@ -344,7 +344,7 @@ export async function getDocumentSpacesHandler(req: Request, res: Response) {
 
     // Check if user owns the document or has access
     if (document.ownerId !== userId) {
-      const share = await storage.getDocumentShareForUser(documentId, userId);
+      const share = await storage.getShareInDocumentTree(documentId, userId);
       if (!share) {
         return res.status(403).json({ message: "Not authorized to access this document" });
       }

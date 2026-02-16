@@ -30,9 +30,9 @@ export const SharingStatusBadge = memo(function SharingStatusBadge({
   if (isShared) {
     return (
       <div className="flex items-center gap-1.5">
-        <UsersIcon className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+        <UsersIcon className="h-3.5 w-3.5 text-teal-500 dark:text-teal-400 flex-shrink-0" />
         {!compact && (
-          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 truncate">
+          <span className="text-xs font-medium text-teal-600 dark:text-teal-400 truncate">
             {shareCount > 0 ? `Shared with ${shareCount}` : 'Shared'}
           </span>
         )}

@@ -6,9 +6,12 @@ export function useDocumentPermissions(document: DocumentWithPermission | undefi
   const { toast } = useToast();
   const [hasShownViewOnlyWarning, setHasShownViewOnlyWarning] = useState(false);
 
-  const canEdit = !document || document.userPermission === "owner" || document.userPermission === "edit" || document.userPermission === "edit_comment";
+  const isOwner = !document || document.userPermission === "owner";
+  const canEdit = isOwner || document?.userPermission === "edit" || document?.userPermission === "edit_comment";
+  const canComment = isOwner || document?.userPermission === "comment" || document?.userPermission === "edit_comment";
   const isViewOnly = document?.userPermission === "view";
   const isCommentOnly = document?.userPermission === "comment";
+  const isEditOnly = document?.userPermission === "edit";
   const canEditAndComment = document?.userPermission === "edit_comment";
 
   const showNoEditWarning = useCallback(() => {
@@ -35,9 +38,12 @@ export function useDocumentPermissions(document: DocumentWithPermission | undefi
   }, [isViewOnly, isCommentOnly, document, showNoEditWarning]);
 
   return {
+    isOwner,
     canEdit,
+    canComment,
     isViewOnly,
     isCommentOnly,
+    isEditOnly,
     canEditAndComment,
     shouldBlockEdit,
   };

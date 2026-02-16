@@ -13,8 +13,11 @@ import {
   type PageTreeNode,
 } from "@shared/schema";
 import { db } from "../db";
-import { eq, and, desc, sql, inArray, isNull, asc } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, isNull, isNotNull, asc, gt } from "drizzle-orm";
 import { wasDeleted, buildOwnerObject, escapeRegex, fetchLastUpdaterMap, getLastUpdaterIds } from "./helpers";
+
+// Helper condition: document is NOT soft-deleted
+const notDeleted = isNull(documents.deletedAt);
 
 // Pagination options for document queries
 export interface PaginationOptions {
@@ -67,6 +70,7 @@ export interface IDocumentStorage {
 
   // Document Comments
   getDocumentComments(documentId: string): Promise<DocumentComment[]>;
+  getDocumentComment(id: string): Promise<DocumentComment | undefined>;
   createDocumentComment(comment: InsertDocumentComment): Promise<DocumentComment>;
   updateDocumentComment(id: string, updates: UpdateDocumentComment): Promise<DocumentComment | undefined>;
   deleteDocumentComment(id: string): Promise<boolean>;
@@ -77,6 +81,12 @@ export interface IDocumentStorage {
   getPageTree(rootDocumentId: string): Promise<PageTreeNode[]>;
   reorderPage(documentId: string, newOrder: number): Promise<Document | undefined>;
   getRootDocument(documentId: string): Promise<Document | undefined>;
+  getShareInDocumentTree(documentId: string, userId: string): Promise<{ permission: "view" | "edit" | "comment" | "edit_comment" } | null>;
+
+  // Trash operations
+  restoreDocument(id: string): Promise<boolean>;
+  permanentlyDeleteDocument(id: string): Promise<boolean>;
+  getDeletedDocumentsByOwner(ownerId: string): Promise<DocumentWithOwner[]>;
 }
 
 export class DocumentStorage implements IDocumentStorage {
@@ -92,6 +102,7 @@ export class DocumentStorage implements IDocumentStorage {
       })
       .from(documents)
       .leftJoin(users, eq(documents.ownerId, users.id))
+      .where(notDeleted)
       .orderBy(desc(documents.updatedAt));
 
     return rows.map(row => ({
@@ -112,7 +123,7 @@ export class DocumentStorage implements IDocumentStorage {
     const [doc] = await db
       .select()
       .from(documents)
-      .where(eq(documents.publicLinkToken, token));
+      .where(and(eq(documents.publicLinkToken, token), notDeleted));
     return doc || undefined;
   }
 
@@ -127,7 +138,7 @@ export class DocumentStorage implements IDocumentStorage {
       })
       .from(documents)
       .leftJoin(users, eq(documents.ownerId, users.id))
-      .where(eq(documents.ownerId, ownerId))
+      .where(and(eq(documents.ownerId, ownerId), notDeleted))
       .orderBy(desc(documents.updatedAt));
 
     const lastUpdaterIds = getLastUpdaterIds(rows.map(r => r.doc));
@@ -164,7 +175,7 @@ export class DocumentStorage implements IDocumentStorage {
     const orderFn = sortDirection === 'asc' ? asc : desc;
 
     // Build where conditions
-    const whereConditions = [eq(documents.ownerId, ownerId)];
+    const whereConditions = [eq(documents.ownerId, ownerId), notDeleted];
     if (search) {
       whereConditions.push(sql`LOWER(${documents.title}) LIKE ${'%' + search.toLowerCase() + '%'}`);
     }
@@ -229,7 +240,7 @@ export class DocumentStorage implements IDocumentStorage {
       })
       .from(documents)
       .leftJoin(users, eq(documents.ownerId, users.id))
-      .where(eq(documents.category, category))
+      .where(and(eq(documents.category, category), notDeleted))
       .orderBy(desc(documents.updatedAt));
 
     const lastUpdaterIds = getLastUpdaterIds(rows.map(r => r.doc));
@@ -270,9 +281,16 @@ export class DocumentStorage implements IDocumentStorage {
   }
 
   async deleteDocument(id: string): Promise<boolean> {
-    await db.delete(documentComments).where(eq(documentComments.documentId, id));
-    const result = await db.delete(documents).where(eq(documents.id, id));
-    return wasDeleted(result);
+    // Soft-delete: set deletedAt on this document and all its children
+    const descendantIds = await this.getAllDescendantIds(id);
+    const allIds = [id, ...descendantIds];
+
+    const [updated] = await db
+      .update(documents)
+      .set({ deletedAt: sql`CURRENT_TIMESTAMP` })
+      .where(and(inArray(documents.id, allIds), notDeleted))
+      .returning();
+    return !!updated;
   }
 
   async updateDocumentLastViewed(id: string): Promise<Document | undefined> {
@@ -292,7 +310,7 @@ export class DocumentStorage implements IDocumentStorage {
     const existingDocs = await db
       .select()
       .from(documents)
-      .where(sql`LOWER(TRIM(${documents.title})) = ${normalizedTitle}`);
+      .where(and(sql`LOWER(TRIM(${documents.title})) = ${normalizedTitle}`, notDeleted));
 
     // If excluding a specific document (for update scenarios)
     if (excludeDocId) {
@@ -317,7 +335,7 @@ export class DocumentStorage implements IDocumentStorage {
     const existingDocs = await db
       .select({ title: documents.title })
       .from(documents)
-      .where(sql`LOWER(TRIM(${documents.title})) LIKE ${normalizedBase + '%'}`);
+      .where(and(sql`LOWER(TRIM(${documents.title})) LIKE ${normalizedBase + '%'}`, notDeleted));
 
     // Extract existing numbers from titles like "My Doc (1)", "My Doc (2)", etc.
     const existingNumbers: number[] = [];
@@ -355,7 +373,7 @@ export class DocumentStorage implements IDocumentStorage {
     const [doc] = await db
       .select()
       .from(documents)
-      .where(sql`LOWER(TRIM(${documents.title})) = ${normalizedTitle}`);
+      .where(and(sql`LOWER(TRIM(${documents.title})) = ${normalizedTitle}`, notDeleted));
 
     return doc || undefined;
   }
@@ -368,6 +386,14 @@ export class DocumentStorage implements IDocumentStorage {
       .where(eq(documentComments.documentId, documentId))
       .orderBy(documentComments.createdAt);
     return comments;
+  }
+
+  async getDocumentComment(id: string): Promise<DocumentComment | undefined> {
+    const [comment] = await db
+      .select()
+      .from(documentComments)
+      .where(eq(documentComments.id, id));
+    return comment || undefined;
   }
 
   async createDocumentComment(comment: InsertDocumentComment): Promise<DocumentComment> {
@@ -603,7 +629,7 @@ export class DocumentStorage implements IDocumentStorage {
       })
       .from(documents)
       .leftJoin(users, eq(documents.ownerId, users.id))
-      .where(inArray(documents.id, documentIds));
+      .where(and(inArray(documents.id, documentIds), notDeleted));
 
     const lastUpdaterIds = getLastUpdaterIds(docsWithOwner);
     const lastUpdaterMap = await fetchLastUpdaterMap(lastUpdaterIds);
@@ -655,7 +681,7 @@ export class DocumentStorage implements IDocumentStorage {
     const documentIds = sharedDocs.map(s => s.documentId);
 
     // Build where conditions for search
-    const whereConditions = [inArray(documents.id, documentIds)];
+    const whereConditions = [inArray(documents.id, documentIds), notDeleted];
     if (search) {
       whereConditions.push(sql`LOWER(${documents.title}) LIKE ${'%' + search.toLowerCase() + '%'}`);
     }
@@ -760,11 +786,11 @@ export class DocumentStorage implements IDocumentStorage {
       : documents.updatedAt;
     const orderFn = sortDirection === 'asc' ? asc : desc;
 
-    // Get owned document IDs
+    // Get owned document IDs (exclude soft-deleted)
     const ownedDocs = await db
       .select({ id: documents.id })
       .from(documents)
-      .where(eq(documents.ownerId, userId));
+      .where(and(eq(documents.ownerId, userId), notDeleted));
 
     // Get shared document IDs
     const sharedDocs = await db
@@ -783,7 +809,7 @@ export class DocumentStorage implements IDocumentStorage {
     }
 
     // Build where conditions
-    const whereConditions = [inArray(documents.id, allDocumentIds)];
+    const whereConditions = [inArray(documents.id, allDocumentIds), notDeleted];
     if (search) {
       whereConditions.push(sql`LOWER(${documents.title}) LIKE ${'%' + search.toLowerCase() + '%'}`);
     }
@@ -846,7 +872,7 @@ export class DocumentStorage implements IDocumentStorage {
     const pages = await db
       .select()
       .from(documents)
-      .where(eq(documents.parentDocumentId, parentDocumentId))
+      .where(and(eq(documents.parentDocumentId, parentDocumentId), notDeleted))
       .orderBy(asc(documents.pageOrder));
     return pages;
   }
@@ -884,7 +910,7 @@ export class DocumentStorage implements IDocumentStorage {
           parentDocumentId: documents.parentDocumentId,
         })
         .from(documents)
-        .where(eq(documents.parentDocumentId, parentId))
+        .where(and(eq(documents.parentDocumentId, parentId), notDeleted))
         .orderBy(asc(documents.pageOrder));
 
       const nodes: PageTreeNode[] = [];
@@ -922,6 +948,112 @@ export class DocumentStorage implements IDocumentStorage {
     }
 
     return currentDoc;
+  }
+
+  async getShareInDocumentTree(documentId: string, userId: string): Promise<{ permission: "view" | "edit" | "comment" | "edit_comment" } | null> {
+    // 1. Check direct share on this document
+    const directShare = await this.getDocumentShareForUser(documentId, userId);
+    if (directShare) return directShare;
+
+    // 2. Find the root document
+    const rootDoc = await this.getRootDocument(documentId);
+    if (!rootDoc) return null;
+
+    // 3. Check share on root (if different from current doc)
+    if (rootDoc.id !== documentId) {
+      const rootShare = await this.getDocumentShareForUser(rootDoc.id, userId);
+      if (rootShare) return rootShare;
+    }
+
+    // 4. Check shares on all child documents of the root
+    const allChildren = await this.getAllDescendantIds(rootDoc.id);
+    for (const childId of allChildren) {
+      if (childId === documentId) continue; // already checked
+      const childShare = await this.getDocumentShareForUser(childId, userId);
+      if (childShare) return childShare;
+    }
+
+    return null;
+  }
+
+  private async getAllDescendantIds(parentId: string, includeDeleted: boolean = false): Promise<string[]> {
+    const whereCondition = includeDeleted
+      ? eq(documents.parentDocumentId, parentId)
+      : and(eq(documents.parentDocumentId, parentId), notDeleted);
+
+    const children = await db
+      .select({ id: documents.id })
+      .from(documents)
+      .where(whereCondition);
+
+    const ids: string[] = children.map(c => c.id);
+    for (const child of children) {
+      const grandChildren = await this.getAllDescendantIds(child.id, includeDeleted);
+      ids.push(...grandChildren);
+    }
+    return ids;
+  }
+
+  // Trash operations
+  async restoreDocument(id: string): Promise<boolean> {
+    // Restore this document and all its children
+    const descendantIds = await this.getAllDescendantIds(id, true);
+    const allIds = [id, ...descendantIds];
+
+    const [updated] = await db
+      .update(documents)
+      .set({ deletedAt: null })
+      .where(and(inArray(documents.id, allIds), isNotNull(documents.deletedAt)))
+      .returning();
+    return !!updated;
+  }
+
+  async permanentlyDeleteDocument(id: string): Promise<boolean> {
+    // Get all descendant IDs (including deleted)
+    const descendantIds = await this.getAllDescendantIds(id, true);
+    const allIds = [id, ...descendantIds];
+
+    // Delete comments for all documents in the tree
+    await db.delete(documentComments).where(inArray(documentComments.documentId, allIds));
+
+    // Delete shares for all documents in the tree
+    await db.delete(documentShares).where(inArray(documentShares.documentId, allIds));
+
+    // Delete children first, then the document
+    if (descendantIds.length > 0) {
+      await db.delete(documents).where(inArray(documents.id, descendantIds));
+    }
+
+    const result = await db.delete(documents).where(eq(documents.id, id));
+    return wasDeleted(result);
+  }
+
+  async getDeletedDocumentsByOwner(ownerId: string): Promise<DocumentWithOwner[]> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const rows = await db
+      .select({
+        doc: documents,
+        ownerId: users.id,
+        ownerDisplayName: users.displayName,
+        ownerEmail: users.email,
+        ownerProfilePicture: users.profilePicture,
+      })
+      .from(documents)
+      .leftJoin(users, eq(documents.ownerId, users.id))
+      .where(and(
+        eq(documents.ownerId, ownerId),
+        isNotNull(documents.deletedAt),
+        gt(documents.deletedAt, thirtyDaysAgo),
+        isNull(documents.parentDocumentId), // Only show root docs in trash
+      ))
+      .orderBy(desc(documents.deletedAt));
+
+    return rows.map(row => ({
+      ...row.doc,
+      owner: buildOwnerObject(row),
+    }));
   }
 }
 

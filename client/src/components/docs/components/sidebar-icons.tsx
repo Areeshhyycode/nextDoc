@@ -1,4 +1,4 @@
-import { MessageSquare, Settings, FileText, FilePlus } from 'lucide-react';
+import { MessageSquare, FileText, FilePlus, List, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -6,43 +6,50 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { DocSettingsDropdown } from "./doc-settings-dropdown";
-import type { DocumentWithOwner } from "@shared/schema";
 
 interface SidebarIconsProps {
   commentsOpen: boolean;
   pageStylesOpen: boolean;
   pagesOpen?: boolean;
+  outlineOpen?: boolean;
+  versionsOpen?: boolean;
   onCommentsToggle: () => void;
   onPageStylesToggle: () => void;
   onPagesToggle?: () => void;
+  onOutlineToggle?: () => void;
+  onVersionsToggle?: () => void;
   commentsCount?: number;
   pagesCount?: number;
   isNewDoc?: boolean;
-  document?: DocumentWithOwner | null;
   /** Show add page button */
   canAddPage?: boolean;
   /** Callback when add page button is clicked */
   onAddPage?: () => void;
+  /** Can user edit the document (controls page styles visibility) */
+  canEdit?: boolean;
 }
 
 export function SidebarIcons({
   commentsOpen,
   pageStylesOpen,
   pagesOpen = false,
+  outlineOpen = false,
+  versionsOpen = false,
   onCommentsToggle,
   onPageStylesToggle,
   onPagesToggle,
+  onOutlineToggle,
+  onVersionsToggle,
   commentsCount = 0,
   pagesCount = 0,
   isNewDoc = false,
-  document,
   canAddPage = false,
   onAddPage,
+  canEdit = true,
 }: SidebarIconsProps) {
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="fixed right-4 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-l-lg shadow-lg py-2">
+      <div className="hidden md:flex fixed right-4 top-1/2 -translate-y-1/2 z-40 flex-col gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-l-lg shadow-lg py-2">
         {/* Add Page Icon */}
         {canAddPage && onAddPage && (
           <>
@@ -75,24 +82,54 @@ export function SidebarIcons({
                   className={cn(
                     "relative flex flex-col items-center justify-center w-12 h-12 transition-all group",
                     pagesOpen
-                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                      ? "bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400"
                       : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
                   )}
                   data-testid="sidebar-icon-pages"
                 >
                   <FileText className="h-5 w-5" />
                   {pagesCount > 0 && (
-                    <span className="absolute top-1 right-1 bg-blue-500 text-white text-[10px] font-semibold rounded-full w-4 h-4 flex items-center justify-center">
+                    <span className="absolute top-1 right-1 bg-teal-500 text-white text-[10px] font-semibold rounded-full w-4 h-4 flex items-center justify-center">
                       {pagesCount > 9 ? '9+' : pagesCount}
                     </span>
                   )}
                   {pagesOpen && (
-                    <div className="absolute right-full top-1/2 -translate-y-1/2 w-0.5 h-8 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 w-0.5 h-8 bg-teal-600 dark:bg-teal-400 rounded-full" />
                   )}
                 </button>
               </TooltipTrigger>
               <TooltipContent side="left" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
                 Pages
+              </TooltipContent>
+            </Tooltip>
+            {/* Divider */}
+            <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2" />
+          </>
+        )}
+
+        {/* Outline Icon */}
+        {onOutlineToggle && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onOutlineToggle}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center w-12 h-12 transition-all group",
+                    outlineOpen
+                      ? "bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  )}
+                  data-testid="sidebar-icon-outline"
+                >
+                  <List className="h-5 w-5" />
+                  {outlineOpen && (
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 w-0.5 h-8 bg-teal-600 dark:bg-teal-400 rounded-full" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
+                Outline
               </TooltipContent>
             </Tooltip>
             {/* Divider */}
@@ -108,7 +145,7 @@ export function SidebarIcons({
               className={cn(
                 "relative flex flex-col items-center justify-center w-12 h-12 transition-all group",
                 commentsOpen
-                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                  ? "bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400"
                   : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
               )}
               data-testid="sidebar-icon-comments"
@@ -120,7 +157,7 @@ export function SidebarIcons({
                 </span>
               )}
               {commentsOpen && (
-                <div className="absolute right-full top-1/2 -translate-y-1/2 w-0.5 h-8 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                <div className="absolute right-full top-1/2 -translate-y-1/2 w-0.5 h-8 bg-teal-600 dark:bg-teal-400 rounded-full" />
               )}
             </button>
           </TooltipTrigger>
@@ -129,72 +166,67 @@ export function SidebarIcons({
           </TooltipContent>
         </Tooltip>
 
-        {/* Divider */}
-        <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2" />
-
-        {/* Page Styles Icon */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={onPageStylesToggle}
-              className={cn(
-                "relative flex flex-col items-center justify-center w-12 h-12 transition-all group",
-                pageStylesOpen
-                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-              )}
-              data-testid="sidebar-icon-page-styles"
-            >
-              <span className="text-lg font-semibold">Aa</span>
-              {pageStylesOpen && (
-                <div className="absolute right-full top-1/2 -translate-y-1/2 w-0.5 h-8 bg-blue-600 dark:bg-blue-400 rounded-full" />
-              )}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="left" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
-            Page Styles
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Divider */}
-        <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2" />
-
-        {/* Doc Settings */}
-        {document && !isNewDoc ? (
-          <DocSettingsDropdown
-            doc={document}
-            trigger={
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="relative flex flex-col items-center justify-center w-12 h-12 transition-all group hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-                    data-testid="sidebar-icon-doc-settings"
-                  >
-                    <Settings className="h-5 w-5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="left" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
-                  Doc Settings
-                </TooltipContent>
-              </Tooltip>
-            }
-          />
-        ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="relative flex flex-col items-center justify-center w-12 h-12 transition-all group hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50"
-                data-testid="sidebar-icon-doc-settings"
-                disabled
-              >
-                <Settings className="h-5 w-5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
-              Save document first
-            </TooltipContent>
-          </Tooltip>
+        {/* Version History Icon */}
+        {onVersionsToggle && !isNewDoc && (
+          <>
+            {/* Divider */}
+            <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onVersionsToggle}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center w-12 h-12 transition-all group",
+                    versionsOpen
+                      ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  )}
+                  data-testid="sidebar-icon-versions"
+                >
+                  <History className="h-5 w-5" />
+                  {versionsOpen && (
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 w-0.5 h-8 bg-purple-600 dark:bg-purple-400 rounded-full" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
+                Version History
+              </TooltipContent>
+            </Tooltip>
+          </>
         )}
+
+        {/* Page Styles Icon — only shown for users who can edit */}
+        {canEdit && (
+          <>
+            {/* Divider */}
+            <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2" />
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onPageStylesToggle}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center w-12 h-12 transition-all group",
+                    pageStylesOpen
+                      ? "bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  )}
+                  data-testid="sidebar-icon-page-styles"
+                >
+                  <span className="text-lg font-semibold">Aa</span>
+                  {pageStylesOpen && (
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 w-0.5 h-8 bg-teal-600 dark:bg-teal-400 rounded-full" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-1.5 text-sm">
+                Page Styles
+              </TooltipContent>
+            </Tooltip>
+          </>
+        )}
+
       </div>
     </TooltipProvider>
   );

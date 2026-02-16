@@ -18,10 +18,14 @@ export async function createDocPageHandler(req: Request, res: Response) {
       return res.status(404).json({ message: "Parent document not found" });
     }
 
-    // Check if user can edit (owner or has edit/edit_comment permission)
+    if (parentDoc.deletedAt) {
+      return res.status(400).json({ message: "Cannot add pages to a document that is in trash" });
+    }
+
+    // Check if user can edit (owner or has edit/edit_comment permission anywhere in the document tree)
     let canEdit = parentDoc.ownerId === userId;
     if (!canEdit) {
-      const share = await storage.getDocumentShareForUser(parentDocumentId, userId);
+      const share = await storage.getShareInDocumentTree(parentDocumentId, userId);
       if (share && (share.permission === "edit" || share.permission === "edit_comment")) {
         canEdit = true;
       }

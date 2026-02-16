@@ -4,15 +4,13 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const departmentEnum = pgEnum("department", ["Product", "Design", "Dev", "Marketing & Sales", "Bug Hunting Campaign"]);
+// Enums
 export const userRoleEnum = pgEnum("user_role", ["user", "admin", "sub-admin"]);
-export const statusEnum = pgEnum("status", ["Not Started", "In Progress", "Completed", "Blocked", "Reviewing", "Design Approval Needed", "Temporary Hold"]);
-export const riskEnum = pgEnum("risk", ["Low", "Medium", "High"]);
-export const taskTypeEnum = pgEnum("task_type", ["Operational", "Technical", "Strategic", "Hiring", "Financial"]);
+export const commentStatusEnum = pgEnum("comment_status", ["open", "resolved"]);
+export const docCategoryEnum = pgEnum("doc_category", ["blank", "meeting_notes", "project_overview"]);
+export const docSharingPermissionEnum = pgEnum("doc_sharing_permission", ["view", "edit", "comment", "edit_comment"]);
 
-export const stageEnum = pgEnum("stage", ["Others", "Pre-Event", "Day Of", "Post-Event", "During Event"]);
-export const sprintStatusEnum = pgEnum("sprint_status", ["Planning", "Active", "Completed", "Cancelled"]);
-export const viewTypeEnum = pgEnum("view_type", ["table", "kanban"]);
+// ─── Users Table ────────────────────────────────────────────────────────────────
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -46,65 +44,7 @@ export const users = pgTable("users", {
   onboardingInterestedFeatures: text("onboarding_interested_features").array().default(sql`ARRAY[]::text[]`),
 });
 
-export const teamMembers = pgTable("team_members", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  initials: text("initials").notNull(),
-  department: departmentEnum("department").notNull(),
-  avatarColor: text("avatar_color").default("#3B82F6"),
-});
-
-export const projects = pgTable("projects", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  department: departmentEnum("department").notNull(),
-  task: text("task").notNull(),
-  status: statusEnum("status").notNull().default("Not Started"),
-  owner: text("owner"),
-  stage: text("stage").default("Others"),
-  startDate: text("start_date"), // Start date for task
-  dueDate: text("due_date"), // Using text to match YYYY-MM-DD format
-  completionPercentage: integer("completion_percentage").default(0),
-  risk: text("risk"),
-  notes: text("notes"),
-  description: text("description"), // Detailed task description  
-  labels: text("labels").array().default(sql`ARRAY[]::text[]`), // Array of label names
-  dependencies: text("dependencies").array().default(sql`ARRAY[]::text[]`), // Array of task IDs this task depends on
-  linkedGoalId: varchar("linked_goal_id"), // Reference to associated goal
-  sprintId: varchar("sprint_id"), // Reference to assigned sprint
-  scheduledDate: text("scheduled_date"), // Calendar scheduled date
-  effortEstimate: integer("effort_estimate").default(1), // Story points or hours estimate in minutes
-  taskType: taskTypeEnum("task_type"), // Task category (Operational, Technical, etc.)
-  workspaceProjectId: varchar("workspace_project_id"), // Link to workspace project
-  sectionId: varchar("section_id"), // Link to section/group in list view
-  lastUpdated: timestamp("last_updated").default(sql`CURRENT_TIMESTAMP`),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-export const goals = pgTable("goals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  title: text("title").notNull(),
-  description: text("description"),
-  owner: text("owner"),
-  targetDate: text("target_date"), // Using text to match YYYY-MM-DD format
-  taskIds: text("task_ids").array().default(sql`ARRAY[]::text[]`), // Array of linked task IDs
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-export const sprints = pgTable("sprints", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  description: text("description"),
-  startDate: text("start_date").notNull(), // Using text to match YYYY-MM-DD format
-  endDate: text("end_date").notNull(), // Using text to match YYYY-MM-DD format
-  status: sprintStatusEnum("status").notNull().default("Planning"),
-  teamMembers: text("team_members").array().default(sql`ARRAY[]::text[]`), // Array of team member names
-  taskIds: text("task_ids").array().default(sql`ARRAY[]::text[]`), // Array of assigned task IDs
-  totalEffort: integer("total_effort").default(0), // Total story points/hours
-  completedEffort: integer("completed_effort").default(0), // Completed story points/hours
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
-});
+// ─── User Sessions ──────────────────────────────────────────────────────────────
 
 export const userSessions = pgTable("user_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -117,74 +57,42 @@ export const userSessions = pgTable("user_sessions", {
   isActive: boolean("is_active").default(true),
 });
 
+// ─── Activity Logs ──────────────────────────────────────────────────────────────
+
 export const activityLogs = pgTable("activity_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
-  action: text("action").notNull(), // 'login', 'logout', 'task_created', 'task_updated', etc.
-  details: text("details"), // JSON string with additional details
+  action: text("action").notNull(),
+  details: text("details"),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   timestamp: timestamp("timestamp").default(sql`CURRENT_TIMESTAMP`),
 });
 
+// ─── Invitations ────────────────────────────────────────────────────────────────
+
 export const invitations = pgTable("invitations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull(),
   role: userRoleEnum("role").notNull().default("user"),
-  invitedBy: varchar("invited_by").notNull(), // User ID of admin who sent invite
-  status: text("status").default("pending"), // 'pending', 'accepted', 'expired'
+  invitedBy: varchar("invited_by").notNull(),
+  status: text("status").default("pending"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-  expiresAt: timestamp("expires_at"), // Optional expiry date
+  expiresAt: timestamp("expires_at"),
 });
 
-export const teams = pgTable("teams", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  icon: text("icon").notNull().default("Users"),
-  color: text("color").notNull().default("#3B82F6"),
-  description: text("description"),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-export const viewPreferences = pgTable("view_preferences", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  teamId: varchar("team_id").notNull(),
-  viewType: viewTypeEnum("view_type").notNull().default("table"),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-export const kanbanColumns = pgTable("kanban_columns", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  teamId: varchar("team_id").notNull(),
-  name: text("name").notNull(),
-  color: text("color").notNull().default("#6B7280"),
-  icon: text("icon").default("📋"), // Emoji or icon identifier for the column
-  order: integer("order").notNull().default(0),
-  isDefault: boolean("is_default").default(false),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-export const commentStatusEnum = pgEnum("comment_status", ["open", "resolved"]);
-export const docCategoryEnum = pgEnum("doc_category", ["blank", "meeting_notes", "project_overview"]);
-export const docSharingPermissionEnum = pgEnum("doc_sharing_permission", ["view", "edit", "comment", "edit_comment"]);
-export const projectPrivacyEnum = pgEnum("project_privacy", ["private", "everyone", "specific_people"]);
-export const projectLayoutEnum = pgEnum("project_layout", ["list", "kanban", "gantt"]);
-export const projectStatusEnum = pgEnum("project_status", ["at_risk", "on_track", "off_track", "on_hold", "completed"]);
-export const budgetTypeEnum = pgEnum("budget_type", ["fixed", "hourly"]);
-export const activityTypeEnum = pgEnum("activity_type", ["status_changed", "task_completed", "task_added", "task_updated", "task_deleted", "member_added", "member_removed", "description_updated"]);
+// ─── Documents Table ────────────────────────────────────────────────────────────
 
 export const documents = pgTable("documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   content: text("content").default(""), // JSON content from TipTap editor
+  yjsState: text("yjs_state"), // Base64-encoded Yjs binary state for real-time collaboration
   ownerId: varchar("owner_id").notNull(),
   category: docCategoryEnum("category").notNull().default("blank"),
   tags: text("tags").array().default(sql`ARRAY[]::text[]`),
   isFavorite: boolean("is_favorite").default(false),
+  isPinned: boolean("is_pinned").default(false),
   // Page hierarchy support
   parentDocumentId: varchar("parent_document_id"), // Reference to parent document (null for root documents)
   pageOrder: integer("page_order").default(0), // Order within parent's children
@@ -220,9 +128,11 @@ export const documents = pgTable("documents", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
   lastViewedAt: timestamp("last_viewed_at"),
   lastUpdatedBy: varchar("last_updated_by"), // User ID of who last updated the document
+  deletedAt: timestamp("deleted_at"), // null = not deleted, set = soft-deleted (trash)
 });
 
-// Document sharing - tracks who a document is shared with
+// ─── Document Shares ────────────────────────────────────────────────────────────
+
 export const documentShares = pgTable("document_shares", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   documentId: varchar("document_id").notNull(),
@@ -232,6 +142,8 @@ export const documentShares = pgTable("document_shares", {
   sharedAt: timestamp("shared_at").default(sql`CURRENT_TIMESTAMP`),
   lastViewedAt: timestamp("last_viewed_at"), // When this user last viewed the document
 });
+
+// ─── Document Comments ──────────────────────────────────────────────────────────
 
 export const documentComments = pgTable("document_comments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -244,7 +156,8 @@ export const documentComments = pgTable("document_comments", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Document invites - for inviting unregistered users via email
+// ─── Document Invites ───────────────────────────────────────────────────────────
+
 export const documentInvites = pgTable("document_invites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   documentId: varchar("document_id").notNull(),
@@ -259,7 +172,8 @@ export const documentInvites = pgTable("document_invites", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Document templates - user-defined or system templates
+// ─── Document Templates ─────────────────────────────────────────────────────────
+
 export const documentTemplates = pgTable("document_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
@@ -277,7 +191,22 @@ export const documentTemplates = pgTable("document_templates", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Document spaces/folders for organizing documents
+// ─── Document Versions ──────────────────────────────────────────────────────────
+
+export const documentVersions = pgTable("document_versions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(),
+  title: text("title").notNull(),
+  content: text("content").default(""),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  versionNumber: integer("version_number").notNull().default(1),
+  changeType: text("change_type").notNull().default("auto"), // "auto" | "manual" | "restore"
+  wordCount: integer("word_count").default(0),
+});
+
+// ─── Document Spaces ────────────────────────────────────────────────────────────
+
 export const documentSpaces = pgTable("document_spaces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -292,7 +221,8 @@ export const documentSpaces = pgTable("document_spaces", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Junction table linking documents to spaces
+// ─── Document Space Members ─────────────────────────────────────────────────────
+
 export const documentSpaceMembers = pgTable("document_space_members", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   spaceId: varchar("space_id").notNull(),
@@ -300,116 +230,11 @@ export const documentSpaceMembers = pgTable("document_space_members", {
   addedAt: timestamp("added_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const workspaceProjects = pgTable("workspace_projects", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  color: text("color").notNull().default("#3B82F6"),
-  startDate: text("start_date"), // YYYY-MM-DD format
-  endDate: text("end_date"), // YYYY-MM-DD format
-  ownerId: varchar("owner_id").notNull(), // User who created the project
-  privacy: projectPrivacyEnum("privacy").notNull().default("private"),
-  memberIds: text("member_ids").array().default(sql`ARRAY[]::text[]`), // Array of user IDs for specific_people privacy
-  defaultLayout: projectLayoutEnum("default_layout").notNull().default("list"),
-  description: text("description"),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
-});
+// ─── Relations ──────────────────────────────────────────────────────────────────
 
-export const projectSections = pgTable("project_sections", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  projectId: varchar("project_id").notNull(), // Workspace project this section belongs to
-  name: text("name").notNull(),
-  order: integer("order").notNull().default(0), // For drag-and-drop reordering
-  isCollapsed: boolean("is_collapsed").default(false),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-export const projectStatusUpdates = pgTable("project_status_updates", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  projectId: varchar("project_id").notNull(),
-  status: projectStatusEnum("status").notNull(),
-  description: text("description"),
-  userId: varchar("user_id").notNull(),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-export const projectBudgets = pgTable("project_budgets", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  projectId: varchar("project_id").notNull(),
-  name: text("name").notNull(),
-  type: budgetTypeEnum("type").notNull(),
-  amount: integer("amount").notNull(), // Amount in cents
-  currency: text("currency").default("USD"),
-  billDate: text("bill_date"), // YYYY-MM-DD format
-  category: text("category"),
-  description: text("description"),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-export const projectCosts = pgTable("project_costs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  projectId: varchar("project_id").notNull(),
-  name: text("name").notNull(),
-  type: budgetTypeEnum("type").notNull(),
-  amount: integer("amount").notNull(), // Amount in cents
-  currency: text("currency").default("USD"),
-  date: text("date"), // YYYY-MM-DD format
-  category: text("category"),
-  description: text("description"),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-export const projectAttachments = pgTable("project_attachments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  projectId: varchar("project_id").notNull(),
-  fileName: text("file_name").notNull(),
-  fileUrl: text("file_url").notNull(),
-  fileSize: integer("file_size"), // Size in bytes
-  uploadedBy: varchar("uploaded_by").notNull(),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-export const projectActivities = pgTable("project_activities", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  projectId: varchar("project_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  activityType: activityTypeEnum("activity_type").notNull(),
-  entityName: text("entity_name"), // Name of the task/entity that was affected
-  oldValue: text("old_value"), // Previous value for changes
-  newValue: text("new_value"), // New value for changes
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-// Relations
 export const usersRelations = relations(users, ({ many }) => ({
-  sessions: many(userSessions),
-  activityLogs: many(activityLogs),
-}));
-
-export const userSessionsRelations = relations(userSessions, ({ one }) => ({
-  user: one(users, { fields: [userSessions.userId], references: [users.id] }),
-}));
-
-export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
-  user: one(users, { fields: [activityLogs.userId], references: [users.id] }),
-}));
-
-export const invitationsRelations = relations(invitations, ({ one }) => ({
-  inviter: one(users, { fields: [invitations.invitedBy], references: [users.id] }),
-}));
-
-export const teamMembersRelations = relations(teamMembers, ({ many }) => ({
-  projects: many(projects),
-}));
-
-export const viewPreferencesRelations = relations(viewPreferences, ({ one }) => ({
-  user: one(users, { fields: [viewPreferences.userId], references: [users.id] }),
-  team: one(teams, { fields: [viewPreferences.teamId], references: [teams.id] }),
-}));
-
-export const kanbanColumnsRelations = relations(kanbanColumns, ({ one }) => ({
-  team: one(teams, { fields: [kanbanColumns.teamId], references: [teams.id] }),
+  documents: many(documents),
+  documentComments: many(documentComments),
 }));
 
 export const documentsRelations = relations(documents, ({ one, many }) => ({
@@ -428,9 +253,12 @@ export const documentCommentsRelations = relations(documentComments, ({ one }) =
   user: one(users, { fields: [documentComments.userId], references: [users.id] }),
 }));
 
-export const workspaceProjectsRelations = relations(workspaceProjects, ({ one }) => ({
-  owner: one(users, { fields: [workspaceProjects.ownerId], references: [users.id] }),
+export const documentVersionsRelations = relations(documentVersions, ({ one }) => ({
+  document: one(documents, { fields: [documentVersions.documentId], references: [documents.id] }),
+  creator: one(users, { fields: [documentVersions.createdBy], references: [users.id] }),
 }));
+
+// ─── Insert / Update Schemas ────────────────────────────────────────────────────
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -438,6 +266,11 @@ export const insertUserSchema = createInsertSchema(users).omit({
   lastLogin: true,
   lastActivity: true,
   isOnline: true,
+});
+
+export const updateUserSchema = insertUserSchema.partial();
+export const updateUserRoleSchema = z.object({
+  role: z.enum(["user", "admin", "sub-admin"]),
 });
 
 export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
@@ -456,32 +289,11 @@ export const insertInvitationSchema = createInsertSchema(invitations).omit({
   createdAt: true,
 });
 
-export const insertTeamSchema = createInsertSchema(teams).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const updateTeamSchema = insertTeamSchema.partial();
-
-export const insertViewPreferenceSchema = createInsertSchema(viewPreferences).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertKanbanColumnSchema = createInsertSchema(kanbanColumns).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const updateKanbanColumnSchema = insertKanbanColumnSchema.partial();
-
 export const insertDocumentSchema = createInsertSchema(documents).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  deletedAt: true,
 });
 
 export const updateDocumentSchema = insertDocumentSchema.partial();
@@ -508,9 +320,6 @@ export const updateSharePermissionRequestSchema = z.object({
   }),
 });
 
-export type ShareDocumentRequest = z.infer<typeof shareDocumentRequestSchema>;
-export type UpdateSharePermissionRequest = z.infer<typeof updateSharePermissionRequestSchema>;
-
 export const insertDocumentCommentSchema = createInsertSchema(documentComments).omit({
   id: true,
   createdAt: true,
@@ -519,84 +328,59 @@ export const insertDocumentCommentSchema = createInsertSchema(documentComments).
 
 export const updateDocumentCommentSchema = insertDocumentCommentSchema.partial();
 
-export const insertWorkspaceProjectSchema = createInsertSchema(workspaceProjects).omit({
+// Document invites schemas
+export const insertDocumentInviteSchema = createInsertSchema(documentInvites).omit({
+  id: true,
+  createdAt: true,
+  acceptedAt: true,
+  acceptedByUserId: true,
+});
+export const updateDocumentInviteSchema = insertDocumentInviteSchema.partial();
+
+// Validation schema for invite by email API request
+export const inviteByEmailRequestSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  permission: z.enum(["view", "edit", "comment", "edit_comment"], {
+    errorMap: () => ({ message: "Permission must be one of: view, edit, comment, edit_comment" }),
+  }),
+});
+
+// Document templates schemas
+export const insertDocumentTemplateSchema = createInsertSchema(documentTemplates).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
+export const updateDocumentTemplateSchema = insertDocumentTemplateSchema.partial();
 
-export const updateWorkspaceProjectSchema = insertWorkspaceProjectSchema.partial();
-
-export const insertProjectSectionSchema = createInsertSchema(projectSections).omit({
+// Document spaces schemas
+export const insertDocumentSpaceSchema = createInsertSchema(documentSpaces).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
+export const updateDocumentSpaceSchema = insertDocumentSpaceSchema.partial();
 
-export const updateProjectSectionSchema = insertProjectSectionSchema.partial();
-
-export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({
+// Document space members schemas
+export const insertDocumentSpaceMemberSchema = createInsertSchema(documentSpaceMembers).omit({
   id: true,
+  addedAt: true,
 });
 
-export const insertProjectSchema = createInsertSchema(projects).omit({
-  id: true,
-  lastUpdated: true,
-  createdAt: true,
-});
-
-export const updateProjectSchema = insertProjectSchema.partial();
-
-export const insertGoalSchema = createInsertSchema(goals).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const updateGoalSchema = insertGoalSchema.partial();
-
-export const insertSprintSchema = createInsertSchema(sprints).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const updateSprintSchema = insertSprintSchema.partial();
-
-export const updateUserSchema = insertUserSchema.partial();
-export const updateUserRoleSchema = z.object({
-  role: z.enum(["user", "admin", "sub-admin"]),
-});
+// ─── Types ──────────────────────────────────────────────────────────────────────
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
-export type TeamMember = typeof teamMembers.$inferSelect;
-export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
-export type Project = typeof projects.$inferSelect;
-export type InsertProject = z.infer<typeof insertProjectSchema>;
-export type UpdateProject = z.infer<typeof updateProjectSchema>;
-export type Goal = typeof goals.$inferSelect;
-export type InsertGoal = z.infer<typeof insertGoalSchema>;
-export type UpdateGoal = z.infer<typeof updateGoalSchema>;
-export type Sprint = typeof sprints.$inferSelect;
-export type InsertSprint = z.infer<typeof insertSprintSchema>;
-export type UpdateSprint = z.infer<typeof updateSprintSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
+export type UpdateUserRole = z.infer<typeof updateUserRoleSchema>;
+
 export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
 export type UserSession = typeof userSessions.$inferSelect;
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
-export type UpdateUserRole = z.infer<typeof updateUserRoleSchema>;
 export type InsertInvitation = z.infer<typeof insertInvitationSchema>;
 export type Invitation = typeof invitations.$inferSelect;
-export type InsertTeam = z.infer<typeof insertTeamSchema>;
-export type Team = typeof teams.$inferSelect;
-export type UpdateTeam = z.infer<typeof updateTeamSchema>;
-export type InsertViewPreference = z.infer<typeof insertViewPreferenceSchema>;
-export type ViewPreference = typeof viewPreferences.$inferSelect;
-export type InsertKanbanColumn = z.infer<typeof insertKanbanColumnSchema>;
-export type KanbanColumn = typeof kanbanColumns.$inferSelect;
-export type UpdateKanbanColumn = z.infer<typeof updateKanbanColumnSchema>;
+
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type Document = typeof documents.$inferSelect;
 export type UpdateDocument = z.infer<typeof updateDocumentSchema>;
@@ -604,6 +388,40 @@ export type UpdateDocument = z.infer<typeof updateDocumentSchema>;
 export type InsertDocumentShare = z.infer<typeof insertDocumentShareSchema>;
 export type DocumentShare = typeof documentShares.$inferSelect;
 export type UpdateDocumentShare = z.infer<typeof updateDocumentShareSchema>;
+
+export type ShareDocumentRequest = z.infer<typeof shareDocumentRequestSchema>;
+export type UpdateSharePermissionRequest = z.infer<typeof updateSharePermissionRequestSchema>;
+
+export type InsertDocumentComment = z.infer<typeof insertDocumentCommentSchema>;
+export type DocumentComment = typeof documentComments.$inferSelect;
+export type UpdateDocumentComment = z.infer<typeof updateDocumentCommentSchema>;
+
+export type InsertDocumentInvite = z.infer<typeof insertDocumentInviteSchema>;
+export type DocumentInvite = typeof documentInvites.$inferSelect;
+export type UpdateDocumentInvite = z.infer<typeof updateDocumentInviteSchema>;
+
+export type InviteByEmailRequest = z.infer<typeof inviteByEmailRequestSchema>;
+
+export type InsertDocumentTemplate = z.infer<typeof insertDocumentTemplateSchema>;
+export type DocumentTemplate = typeof documentTemplates.$inferSelect;
+export type UpdateDocumentTemplate = z.infer<typeof updateDocumentTemplateSchema>;
+
+export type InsertDocumentSpace = z.infer<typeof insertDocumentSpaceSchema>;
+export type DocumentSpace = typeof documentSpaces.$inferSelect;
+export type UpdateDocumentSpace = z.infer<typeof updateDocumentSpaceSchema>;
+
+export type InsertDocumentSpaceMember = z.infer<typeof insertDocumentSpaceMemberSchema>;
+export type DocumentSpaceMember = typeof documentSpaceMembers.$inferSelect;
+
+// Document version types
+export type DocumentVersion = typeof documentVersions.$inferSelect;
+export type DocumentVersionWithCreator = DocumentVersion & {
+  creator: {
+    id: string;
+    displayName: string;
+    profilePicture: string | null;
+  } | null;
+};
 
 // Shared user info for display purposes
 export type SharedUserInfo = {
@@ -643,106 +461,9 @@ export type PageTreeNode = {
   parentDocumentId: string | null;
   children: PageTreeNode[];
 };
-export type InsertDocumentComment = z.infer<typeof insertDocumentCommentSchema>;
-export type DocumentComment = typeof documentComments.$inferSelect;
-export type UpdateDocumentComment = z.infer<typeof updateDocumentCommentSchema>;
-
-// Document invites schemas
-export const insertDocumentInviteSchema = createInsertSchema(documentInvites).omit({
-  id: true,
-  createdAt: true,
-  acceptedAt: true,
-  acceptedByUserId: true,
-});
-export const updateDocumentInviteSchema = insertDocumentInviteSchema.partial();
-export type InsertDocumentInvite = z.infer<typeof insertDocumentInviteSchema>;
-export type DocumentInvite = typeof documentInvites.$inferSelect;
-export type UpdateDocumentInvite = z.infer<typeof updateDocumentInviteSchema>;
-
-// Validation schema for invite by email API request
-export const inviteByEmailRequestSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  permission: z.enum(["view", "edit", "comment", "edit_comment"], {
-    errorMap: () => ({ message: "Permission must be one of: view, edit, comment, edit_comment" }),
-  }),
-});
-export type InviteByEmailRequest = z.infer<typeof inviteByEmailRequestSchema>;
-
-// Document templates schemas
-export const insertDocumentTemplateSchema = createInsertSchema(documentTemplates).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-export const updateDocumentTemplateSchema = insertDocumentTemplateSchema.partial();
-export type InsertDocumentTemplate = z.infer<typeof insertDocumentTemplateSchema>;
-export type DocumentTemplate = typeof documentTemplates.$inferSelect;
-export type UpdateDocumentTemplate = z.infer<typeof updateDocumentTemplateSchema>;
-
-// Document spaces schemas
-export const insertDocumentSpaceSchema = createInsertSchema(documentSpaces).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-export const updateDocumentSpaceSchema = insertDocumentSpaceSchema.partial();
-export type InsertDocumentSpace = z.infer<typeof insertDocumentSpaceSchema>;
-export type DocumentSpace = typeof documentSpaces.$inferSelect;
-export type UpdateDocumentSpace = z.infer<typeof updateDocumentSpaceSchema>;
 
 // Document space with nested children and document count
 export type DocumentSpaceWithMeta = DocumentSpace & {
   documentCount: number;
   children: DocumentSpaceWithMeta[];
 };
-
-// Document space members schemas
-export const insertDocumentSpaceMemberSchema = createInsertSchema(documentSpaceMembers).omit({
-  id: true,
-  addedAt: true,
-});
-export type InsertDocumentSpaceMember = z.infer<typeof insertDocumentSpaceMemberSchema>;
-export type DocumentSpaceMember = typeof documentSpaceMembers.$inferSelect;
-
-export type InsertWorkspaceProject = z.infer<typeof insertWorkspaceProjectSchema>;
-export type WorkspaceProject = typeof workspaceProjects.$inferSelect;
-export type UpdateWorkspaceProject = z.infer<typeof updateWorkspaceProjectSchema>;
-export type InsertProjectSection = z.infer<typeof insertProjectSectionSchema>;
-export type ProjectSection = typeof projectSections.$inferSelect;
-export type UpdateProjectSection = z.infer<typeof updateProjectSectionSchema>;
-
-export const insertProjectStatusUpdateSchema = createInsertSchema(projectStatusUpdates).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertProjectBudgetSchema = createInsertSchema(projectBudgets).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertProjectCostSchema = createInsertSchema(projectCosts).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertProjectAttachmentSchema = createInsertSchema(projectAttachments).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertProjectActivitySchema = createInsertSchema(projectActivities).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertProjectStatusUpdate = z.infer<typeof insertProjectStatusUpdateSchema>;
-export type ProjectStatusUpdate = typeof projectStatusUpdates.$inferSelect;
-export type InsertProjectBudget = z.infer<typeof insertProjectBudgetSchema>;
-export type ProjectBudget = typeof projectBudgets.$inferSelect;
-export type InsertProjectCost = z.infer<typeof insertProjectCostSchema>;
-export type ProjectCost = typeof projectCosts.$inferSelect;
-export type InsertProjectAttachment = z.infer<typeof insertProjectAttachmentSchema>;
-export type ProjectAttachment = typeof projectAttachments.$inferSelect;
-export type InsertProjectActivity = z.infer<typeof insertProjectActivitySchema>;
-export type ProjectActivity = typeof projectActivities.$inferSelect;

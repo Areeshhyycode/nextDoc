@@ -12,9 +12,9 @@ const templateOptions = [
     icon: Table2,
     label: "Table",
     description: "Organize data in rows and columns",
-    iconBg: "bg-blue-50 dark:bg-blue-900/20",
-    iconColor: "text-blue-600 dark:text-blue-400",
-    borderHover: "hover:border-blue-200 dark:hover:border-blue-800",
+    iconBg: "bg-teal-50 dark:bg-teal-900/20",
+    iconColor: "text-teal-600 dark:text-teal-400",
+    borderHover: "hover:border-teal-200 dark:hover:border-teal-800",
     testId: "starter-table",
   },
   {
