@@ -14,20 +14,20 @@ import { exportDocument, type ExportFormat } from "../../utils/export-utils";
 import type { DocumentWithOwner } from "@shared/schema";
 
 const EXPORT_FORMATS = [
-  { format: "docx" as ExportFormat, label: "Word Document", ext: ".docx", Icon: FileSpreadsheet, color: "text-blue-400" },
-  { format: "docm" as ExportFormat, label: "Word Macro Doc", ext: ".docm", Icon: FileSpreadsheet, color: "text-blue-400" },
-  { format: "word" as ExportFormat, label: "Word 97-2003", ext: ".doc", Icon: FileSpreadsheet, color: "text-blue-400" },
-  { format: "dotm" as ExportFormat, label: "Word Macro Tmpl", ext: ".dotm", Icon: FileSpreadsheet, color: "text-blue-400" },
-  { format: "dotx" as ExportFormat, label: "Word Template", ext: ".dotx", Icon: FileSpreadsheet, color: "text-blue-400" },
-  { format: "dot" as ExportFormat, label: "Word 97-2003 Tmpl", ext: ".dot", Icon: FileSpreadsheet, color: "text-blue-400" },
+  { format: "docx" as ExportFormat, label: "Word Document", ext: ".docx", Icon: FileSpreadsheet, color: "text-teal-400" },
+  { format: "docm" as ExportFormat, label: "Word Macro Doc", ext: ".docm", Icon: FileSpreadsheet, color: "text-teal-400" },
+  { format: "word" as ExportFormat, label: "Word 97-2003", ext: ".doc", Icon: FileSpreadsheet, color: "text-teal-400" },
+  { format: "dotm" as ExportFormat, label: "Word Macro Tmpl", ext: ".dotm", Icon: FileSpreadsheet, color: "text-teal-400" },
+  { format: "dotx" as ExportFormat, label: "Word Template", ext: ".dotx", Icon: FileSpreadsheet, color: "text-teal-400" },
+  { format: "dot" as ExportFormat, label: "Word 97-2003 Tmpl", ext: ".dot", Icon: FileSpreadsheet, color: "text-teal-400" },
   { format: "pdf" as ExportFormat, label: "PDF Document", ext: ".pdf", Icon: FileText, color: "text-red-400" },
-  { format: "xps" as ExportFormat, label: "XPS Document", ext: ".xps", Icon: FileText, color: "text-indigo-400" },
+  { format: "xps" as ExportFormat, label: "XPS Document", ext: ".xps", Icon: FileText, color: "text-teal-400" },
   { format: "mht" as ExportFormat, label: "Single File Web", ext: ".mht", Icon: FileCode, color: "text-orange-400" },
   { format: "html" as ExportFormat, label: "Web Page", ext: ".htm", Icon: FileCode, color: "text-orange-400" },
   { format: "rtf" as ExportFormat, label: "Rich Text Format", ext: ".rtf", Icon: FileType, color: "text-purple-400" },
   { format: "text" as ExportFormat, label: "Plain Text", ext: ".txt", Icon: File, color: "text-gray-400" },
   { format: "wordxml" as ExportFormat, label: "Word XML", ext: ".xml", Icon: FileCode, color: "text-green-400" },
-  { format: "strict" as ExportFormat, label: "Strict Open XML", ext: ".docx", Icon: FileSpreadsheet, color: "text-blue-400" },
+  { format: "strict" as ExportFormat, label: "Strict Open XML", ext: ".docx", Icon: FileSpreadsheet, color: "text-teal-400" },
   { format: "odt" as ExportFormat, label: "OpenDocument", ext: ".odt", Icon: FileSpreadsheet, color: "text-emerald-400" },
 ];
 
@@ -80,12 +80,12 @@ export function ExportDropdown({ doc }: ExportDropdownProps) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={isExporting}
-        className="flex items-center gap-2 h-9 px-3 text-sm bg-[#2a2a2a] border border-[#444] text-white rounded-md hover:bg-[#333] disabled:opacity-50 transition-colors"
+        className="flex items-center gap-1.5 sm:gap-2 h-8 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm bg-[#2a2a2a] border border-[#444] text-white rounded-lg hover:bg-[#333] disabled:opacity-50 transition-colors"
       >
         {isExporting ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <Download className="h-4 w-4" />
+          <Download className="h-3.5 w-3.5" />
         )}
         Export
         <ChevronDown className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />

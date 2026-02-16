@@ -1,6 +1,6 @@
 import { useState, memo } from "react";
 import { Link } from "wouter";
-import { FileText, Users, Star } from "lucide-react";
+import { FileText, Users, Star, Pin } from "lucide-react";
 import type { DocumentWithOwner } from "@shared/schema";
 import { formatRelativeTime, wasUpdated } from "@/lib/date-utils";
 import { DocSettingsDropdown } from "../doc-settings-dropdown";
@@ -8,16 +8,20 @@ import { ShareDocumentModal } from "../share-document-modal";
 import { useAuth } from "@/hooks/useAuth";
 import { SharingStatusBadge } from "./SharingStatusBadge";
 import { OwnerInfoPopup } from "./OwnerInfoPopup";
+import { DuplicateNameBadge } from "../duplicate-name-badge";
 
 export const DesktopDocumentRow = memo(function DesktopDocumentRow({
   doc,
-  style
+  style,
+  isDuplicate
 }: {
   doc: DocumentWithOwner;
   style: React.CSSProperties;
+  isDuplicate?: boolean;
 }) {
   const [showOwnerPopup, setShowOwnerPopup] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isProtected, setIsProtected] = useState(doc.isProtected ?? false);
   const { user } = useAuth();
   const isSharedWithMe = user?.id !== doc.ownerId;
   const canShare = user?.id === doc.ownerId;
@@ -36,19 +40,36 @@ export const DesktopDocumentRow = memo(function DesktopDocumentRow({
           <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
             doc.category === 'meeting_notes'
               ? 'bg-green-100 dark:bg-green-900/30'
-              : 'bg-blue-100 dark:bg-blue-900/30'
+              : 'bg-teal-100 dark:bg-teal-900/30'
           }`}>
             {doc.category === 'meeting_notes' ? (
               <Users className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
             ) : (
-              <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              <FileText className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
             )}
           </div>
           <span className="text-sm text-gray-900 dark:text-white truncate">
             {doc.title || 'Untitled'}
           </span>
+          {isDuplicate && <DuplicateNameBadge />}
+          {doc.isPinned && (
+            <Pin className="h-4 w-4 text-teal-500 fill-teal-500 flex-shrink-0 rotate-45" />
+          )}
           {doc.isFavorite && (
             <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+          )}
+          {isProtected && (
+            <div className="relative group/shield flex-shrink-0" style={{ zIndex: 5 }}>
+              <img
+                src="/pngtree-removebg-preview.png"
+                alt="Protected Doc"
+                className="h-[18px] w-[18px] object-contain"
+              />
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium rounded-md whitespace-nowrap opacity-0 invisible group-hover/shield:opacity-100 group-hover/shield:visible transition-all duration-200 pointer-events-none z-50 shadow-lg">
+                Protected Doc
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-700" />
+              </div>
+            </div>
           )}
         </div>
 
@@ -69,7 +90,7 @@ export const DesktopDocumentRow = memo(function DesktopDocumentRow({
                 className="w-6 h-6 rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0" aria-hidden="true">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-teal-500 to-violet-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0" aria-hidden="true">
                 {doc.owner?.displayName?.charAt(0).toUpperCase() || '?'}
               </div>
             )}
@@ -129,6 +150,8 @@ export const DesktopDocumentRow = memo(function DesktopDocumentRow({
             doc={doc}
             onOpenSharingModal={canShare ? () => setShowShareModal(true) : undefined}
             isSharedWithMe={isSharedWithMe}
+            isProtected={isProtected}
+            onProtectToggle={setIsProtected}
           />
         </div>
       </div>

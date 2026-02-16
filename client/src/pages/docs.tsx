@@ -13,17 +13,17 @@ import { TemplatesSection } from "@/components/docs/components/templates-section
 import { ImportModal } from "@/components/docs/import-modal/index";
 import { type FilterState, defaultFilterState } from "@/components/docs/components/docs-filter-popover";
 import { useDocumentFiltering } from "@/hooks/use-document-filtering";
+import { useDuplicateDetection } from "@/hooks/use-duplicate-detection";
 
-// Threshold for using virtualized table (for better performance with large lists)
 const VIRTUALIZATION_THRESHOLD = 50;
 
-// Query key factory for consistent cache management
 export const docKeys = {
   all: ['docs'] as const,
   lists: () => [...docKeys.all, 'list'] as const,
   list: (filter: string) => [...docKeys.lists(), filter] as const,
   detail: (id: string) => [...docKeys.all, 'detail', id] as const,
   shares: (id: string) => [...docKeys.all, 'shares', id] as const,
+  trash: () => [...docKeys.all, 'trash'] as const,
 };
 
 export default function DocsPage() {
@@ -35,7 +35,6 @@ export default function DocsPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filters, setFilters] = useState<FilterState>(defaultFilterState);
 
-  // Memoize filter computation
   const filter = useMemo(() => {
     if (location === '/docs/my') return 'my';
     if (location === '/docs/meeting-notes') return 'meeting_notes';
@@ -53,10 +52,9 @@ export default function DocsPage() {
     gcTime: 5 * 60_000,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    refetchInterval: 15_000, // Auto-refresh so shared docs appear without manual reload
+    refetchInterval: 15_000,
   });
 
-  // Memoize callbacks to prevent unnecessary re-renders
   const handleCreateDoc = useCallback(
     (category: 'blank' | 'meeting_notes' | 'project_overview') => setLocation(`/docs/new?category=${category}`),
     [setLocation]
@@ -74,10 +72,11 @@ export default function DocsPage() {
   );
 
   const filteredAndSortedDocuments = useDocumentFiltering({ documents, searchQuery, filters, sortField, sortDirection });
+  const duplicateDocIds = useDuplicateDetection(documents);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
-      <div className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-12 py-2 sm:py-5 lg:py-8">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-[#0a0f18]">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <DocsHeader onCreateDoc={handleCreateDoc} onImport={handleOpenImport} />
 
         <TemplatesSection
@@ -102,9 +101,9 @@ export default function DocsPage() {
         ) : filteredAndSortedDocuments.length === 0 ? (
           <DocsEmptyState searchQuery={searchQuery} onCreateBlank={() => handleCreateDoc('blank')} onCreateMeetingNotes={() => handleCreateDoc('meeting_notes')} />
         ) : filteredAndSortedDocuments.length > VIRTUALIZATION_THRESHOLD ? (
-          <VirtualizedDocumentsTable documents={filteredAndSortedDocuments} />
+          <VirtualizedDocumentsTable documents={filteredAndSortedDocuments} duplicateDocIds={duplicateDocIds} />
         ) : (
-          <DocumentsTable documents={filteredAndSortedDocuments} />
+          <DocumentsTable documents={filteredAndSortedDocuments} duplicateDocIds={duplicateDocIds} />
         )}
 
         {filteredAndSortedDocuments.length > 0 && <DocsFooterStats count={filteredAndSortedDocuments.length} />}

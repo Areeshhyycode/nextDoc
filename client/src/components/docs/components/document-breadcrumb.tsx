@@ -27,7 +27,7 @@ export function DocumentBreadcrumb({
 
   return (
     <nav
-      className="px-6 pt-3 pb-2 flex items-center gap-1.5 text-sm"
+      className="px-3 sm:px-6 pt-3 pb-2 flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm min-w-0 overflow-hidden"
       aria-label="Breadcrumb"
     >
       {/* Home/Dashboard Link */}
@@ -66,11 +66,11 @@ export function DocumentBreadcrumb({
 
       {/* Current Document */}
       <span
-        className="flex items-center gap-1.5 text-gray-900 dark:text-white font-medium truncate max-w-[200px] sm:max-w-[300px] md:max-w-md"
+        className="flex items-center gap-1.5 text-gray-900 dark:text-white font-medium truncate max-w-[120px] sm:max-w-[200px] md:max-w-md"
         title={displayTitle}
       >
         {isNewDoc && (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 mr-1">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 mr-1">
             NEW
           </span>
         )}

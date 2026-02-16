@@ -37,9 +37,24 @@ export const PERMISSION_CONFIG: Record<PermissionType, { label: string; shortLab
   edit_comment: { label: "Edit & comment", shortLabel: "Edit & comment" },
 };
 
+export const PERMISSION_LEVELS: Record<PermissionType, number> = {
+  view: 1,
+  comment: 2,
+  edit: 3,
+  edit_comment: 4,
+};
+
+export function getAllowedPermissions(maxPermission: PermissionType | null): PermissionType[] {
+  if (!maxPermission) return Object.keys(PERMISSION_CONFIG) as PermissionType[];
+  const maxLevel = PERMISSION_LEVELS[maxPermission];
+  return (Object.keys(PERMISSION_LEVELS) as PermissionType[]).filter(
+    (p) => PERMISSION_LEVELS[p] <= maxLevel
+  );
+}
+
 const AVATAR_COLORS = [
   "bg-emerald-500",
-  "bg-blue-500",
+  "bg-teal-500",
   "bg-purple-500",
   "bg-pink-500",
   "bg-orange-500",

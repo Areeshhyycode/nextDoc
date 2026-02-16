@@ -30,7 +30,7 @@ export function DocsLoadingSpinner({
       className="flex flex-col items-center justify-center py-32"
     >
       <div
-        className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-5"
+        className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin mb-5"
         aria-hidden="true"
       />
       <p className="text-base text-gray-500 dark:text-gray-400">{message}</p>

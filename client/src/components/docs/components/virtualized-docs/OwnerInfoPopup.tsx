@@ -33,7 +33,7 @@ export function OwnerInfoPopup({
             className="w-12 h-12 rounded-full object-cover"
           />
         ) : (
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg" aria-hidden="true">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-violet-600 flex items-center justify-center text-white font-semibold text-lg" aria-hidden="true">
             {owner.displayName.charAt(0).toUpperCase()}
           </div>
         )}

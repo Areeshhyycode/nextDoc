@@ -1,17 +1,3 @@
-/**
- * Templates Section
- *
- * Quick-start templates with ClickUp-style preview modal.
- * Shows ONLY Project Overview and Meeting Notes templates.
- *
- * Features:
- * - Data-driven template cards
- * - Accessible keyboard navigation
- * - ClickUp-style preview modal with nested pages
- * - Creates documents with specific sub-template content
- * - Responsive design
- */
-
 import { useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { TemplateCard } from "./template-card";
@@ -22,7 +8,6 @@ import {
   type TemplatePage
 } from "./template-preview-modal";
 
-// Template definitions - data-driven approach
 const TEMPLATES = [
   {
     id: "project_overview" as const,
@@ -60,37 +45,29 @@ export function TemplatesSection({
     setPreviewTemplate(null);
   }, []);
 
-  // Handle using a specific sub-template
   const handleUseTemplate = useCallback((selectedPage: TemplatePage) => {
-    // Generate the HTML content from the selected template
     const { title, content } = generateTemplateContent(selectedPage);
-
-    // Encode the template data and navigate to new doc with it
     const templateData = encodeURIComponent(JSON.stringify({
       title,
       content,
       templateId: selectedPage.id
     }));
-
     navigate(`/docs/new?template=${templateData}`);
     setPreviewTemplate(null);
   }, [navigate]);
 
   return (
     <>
-      <section
-        className="mb-3 sm:mb-4 lg:mb-6"
-        aria-labelledby="templates-heading"
-      >
+      <section className="mb-6" aria-labelledby="templates-heading">
         <h2
           id="templates-heading"
-          className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-2 font-bold uppercase tracking-wide"
+          className="text-[11px] text-gray-400 dark:text-gray-500 mb-2 font-semibold uppercase tracking-widest"
         >
           Quick Templates
         </h2>
 
         <div
-          className="grid grid-cols-2 gap-1.5 sm:gap-3 max-w-2xl"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-xl"
           role="list"
           aria-label="Available document templates"
         >
@@ -108,7 +85,6 @@ export function TemplatesSection({
         </div>
       </section>
 
-      {/* ClickUp-style Preview Modal */}
       {previewTemplate && (
         <TemplatePreviewModal
           isOpen={true}
