@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-type ColorTheme = "blue" | "red" | "green";
+type ColorTheme = "teal" | "blue" | "red" | "green";
 
 interface AuthPageLayoutProps {
   children: React.ReactNode;
@@ -13,6 +13,11 @@ const themeConfig: Record<ColorTheme, {
   blob1: string;
   blob2: string;
 }> = {
+  teal: {
+    background: "from-teal-50 via-emerald-50 to-cyan-50 dark:from-[#0a0f18] dark:via-[#0d1117] dark:to-[#0a0f18]",
+    blob1: "from-teal-400/20 to-emerald-600/20",
+    blob2: "from-emerald-400/20 to-cyan-600/20",
+  },
   blue: {
     background: "from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900",
     blob1: "from-blue-400/20 to-purple-600/20",
@@ -34,7 +39,7 @@ const themeConfig: Record<ColorTheme, {
  * Full page layout for auth pages with animated gradient background
  * Used in login, access-denied, and similar pages
  */
-export function AuthPageLayout({ children, theme = "blue", className }: AuthPageLayoutProps) {
+export function AuthPageLayout({ children, theme = "teal", className }: AuthPageLayoutProps) {
   const colors = themeConfig[theme];
 
   return (

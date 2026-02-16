@@ -13,6 +13,7 @@ export { deleteDocHandler } from "./deleteDoc";
 // Document Actions
 export { duplicateDocHandler } from "./duplicateDoc";
 export { toggleFavoriteHandler } from "./toggleFavorite";
+export { togglePinHandler } from "./togglePin";
 export { markAsViewedHandler } from "./markAsViewed";
 
 // Comments
@@ -43,6 +44,17 @@ export { getRootDocumentHandler } from "./getRootDocument";
 // Document Protection
 export { protectDocumentHandler } from "./protectDocument";
 
+// Document Version History
+export { getDocVersionsHandler } from "./getDocVersions";
+export { getDocVersionHandler } from "./getDocVersion";
+export { createDocVersionHandler } from "./createDocVersion";
+export { restoreDocVersionHandler } from "./restoreDocVersion";
+
+// Trash operations
+export { getTrashHandler } from "./getTrash";
+export { restoreDocHandler } from "./restoreDoc";
+export { permanentDeleteDocHandler } from "./permanentDeleteDoc";
+
 // Document Import
 export { validateFileHandler } from "./validateFile";
 export { importDocumentHandler } from "./importDocument";
@@ -56,6 +68,7 @@ import { updateDocHandler } from "./updateDoc";
 import { deleteDocHandler } from "./deleteDoc";
 import { duplicateDocHandler } from "./duplicateDoc";
 import { toggleFavoriteHandler } from "./toggleFavorite";
+import { togglePinHandler } from "./togglePin";
 import { markAsViewedHandler } from "./markAsViewed";
 import { getCommentsHandler } from "./getComments";
 import { createCommentHandler } from "./createComment";
@@ -75,6 +88,13 @@ import { createDocPageHandler } from "./createDocPage";
 import { getDocPageTreeHandler } from "./getDocPageTree";
 import { getRootDocumentHandler } from "./getRootDocument";
 import { protectDocumentHandler } from "./protectDocument";
+import { getDocVersionsHandler } from "./getDocVersions";
+import { getDocVersionHandler } from "./getDocVersion";
+import { createDocVersionHandler } from "./createDocVersion";
+import { restoreDocVersionHandler } from "./restoreDocVersion";
+import { getTrashHandler } from "./getTrash";
+import { restoreDocHandler } from "./restoreDoc";
+import { permanentDeleteDocHandler } from "./permanentDeleteDoc";
 import {
   getTemplatesHandler,
   getTemplateByIdHandler,
@@ -121,6 +141,9 @@ export function registerDocsRoutes(app: Express) {
   app.delete("/api/docs/templates/:id", requireAuth, deleteTemplateHandler as any);
   app.post("/api/docs/templates/:id/use", requireAuth, useTemplateHandler as any);
 
+  // Document trash routes (must be before :id routes to avoid conflict)
+  app.get("/api/docs/trash", requireAuth, getTrashHandler as any);
+
   // Document CRUD routes
   app.get("/api/docs", requireAuth, getAllDocsHandler as any);
   app.get("/api/docs/paginated", requireAuth, getDocsPaginatedHandler as any);
@@ -129,11 +152,18 @@ export function registerDocsRoutes(app: Express) {
   app.put("/api/docs/:id", requireAuth, updateDocHandler as any);
   app.delete("/api/docs/:id", requireAuth, deleteDocHandler as any);
 
+  // Document trash action routes
+  app.post("/api/docs/:id/restore", requireAuth, restoreDocHandler as any);
+  app.delete("/api/docs/:id/permanent", requireAuth, permanentDeleteDocHandler as any);
+
   // Document duplicate route
   app.post("/api/docs/:id/duplicate", requireAuth, duplicateDocHandler as any);
 
   // Document favorite toggle route
   app.patch("/api/docs/:id/favorite", requireAuth, toggleFavoriteHandler as any);
+
+  // Document pin toggle route
+  app.patch("/api/docs/:id/pin", requireAuth, togglePinHandler as any);
 
   // Document view tracking route
   app.patch("/api/docs/:id/view", requireAuth, markAsViewedHandler as any);
@@ -175,6 +205,12 @@ export function registerDocsRoutes(app: Express) {
 
   // Document protection route
   app.patch("/api/docs/:id/protect", requireAuth, protectDocumentHandler as any);
+
+  // Document version history routes
+  app.get("/api/docs/:id/versions", requireAuth, getDocVersionsHandler as any);
+  app.get("/api/docs/:id/versions/:versionId", requireAuth, getDocVersionHandler as any);
+  app.post("/api/docs/:id/versions", requireAuth, createDocVersionHandler as any);
+  app.post("/api/docs/:id/versions/:versionId/restore", requireAuth, restoreDocVersionHandler as any);
 
   // Document spaces route (get spaces for a specific document)
   app.get("/api/docs/:documentId/spaces", requireAuth, getDocumentSpacesHandler as any);

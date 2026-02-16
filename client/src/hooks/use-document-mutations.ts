@@ -7,6 +7,7 @@ interface UseDocumentMutationsOptions {
   docId: string;
   onDeleteSuccess?: () => void;
   onDuplicateSuccess?: (newDocId: string) => void;
+  onRestoreSuccess?: () => void;
 }
 
 interface RenameError {
@@ -15,7 +16,7 @@ interface RenameError {
   message?: string;
 }
 
-export function useDocumentMutations({ docId, onDeleteSuccess, onDuplicateSuccess }: UseDocumentMutationsOptions) {
+export function useDocumentMutations({ docId, onDeleteSuccess, onDuplicateSuccess, onRestoreSuccess }: UseDocumentMutationsOptions) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -58,7 +59,7 @@ export function useDocumentMutations({ docId, onDeleteSuccess, onDuplicateSucces
     },
   });
 
-  // Delete mutation
+  // Delete mutation (soft-delete → moves to trash)
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("DELETE", `/api/docs/${docId}`);
@@ -69,8 +70,47 @@ export function useDocumentMutations({ docId, onDeleteSuccess, onDuplicateSucces
     },
     onSuccess: async () => {
       await invalidateDocQueries();
-      toast({ title: "Document deleted successfully" });
+      await queryClient.invalidateQueries({ queryKey: docKeys.trash(), refetchType: 'all' });
+      toast({ title: "Document moved to trash", description: "You can restore it from Trash within 30 days." });
       onDeleteSuccess?.();
+    },
+    onError: () => {
+      toast({ title: "Failed to delete document", variant: "destructive" });
+    },
+  });
+
+  // Restore mutation (from trash)
+  const restoreMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/docs/${docId}/restore`);
+      if (!response.ok) {
+        throw new Error("Failed to restore");
+      }
+      return response.json();
+    },
+    onSuccess: async () => {
+      await invalidateDocQueries();
+      await queryClient.invalidateQueries({ queryKey: docKeys.trash(), refetchType: 'all' });
+      toast({ title: "Document restored successfully" });
+      onRestoreSuccess?.();
+    },
+    onError: () => {
+      toast({ title: "Failed to restore document", variant: "destructive" });
+    },
+  });
+
+  // Permanent delete mutation (from trash — irreversible)
+  const permanentDeleteMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", `/api/docs/${docId}/permanent`);
+      if (!response.ok) {
+        throw new Error("Failed to permanently delete");
+      }
+      return true;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: docKeys.trash(), refetchType: 'all' });
+      toast({ title: "Document permanently deleted" });
     },
     onError: () => {
       toast({ title: "Failed to delete document", variant: "destructive" });
@@ -93,6 +133,26 @@ export function useDocumentMutations({ docId, onDeleteSuccess, onDuplicateSucces
     },
     onError: () => {
       toast({ title: "Failed to duplicate document", variant: "destructive" });
+    },
+  });
+
+  // Pin mutation
+  const pinMutation = useMutation({
+    mutationFn: async (isPinned: boolean) => {
+      const response = await apiRequest("PATCH", `/api/docs/${docId}/pin`, { isPinned });
+      if (!response.ok) {
+        throw new Error("Failed to update pin");
+      }
+      return response.json();
+    },
+    onSuccess: async (data: { isPinned: boolean }) => {
+      await invalidateDocQueries();
+      toast({
+        title: data.isPinned ? "Document pinned" : "Document unpinned",
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to update pin", variant: "destructive" });
     },
   });
 
@@ -121,10 +181,16 @@ export function useDocumentMutations({ docId, onDeleteSuccess, onDuplicateSucces
     delete: deleteMutation,
     duplicate: duplicateMutation,
     favorite: favoriteMutation,
+    pin: pinMutation,
+    restore: restoreMutation,
+    permanentDelete: permanentDeleteMutation,
     isAnyPending:
       renameMutation.isPending ||
       deleteMutation.isPending ||
       duplicateMutation.isPending ||
-      favoriteMutation.isPending,
+      favoriteMutation.isPending ||
+      pinMutation.isPending ||
+      restoreMutation.isPending ||
+      permanentDeleteMutation.isPending,
   };
 }

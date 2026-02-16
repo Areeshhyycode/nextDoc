@@ -67,14 +67,37 @@ export async function shareDocumentHandler(req: Request, res: Response) {
       return res.status(400).json({ message: "Cannot share document with yourself" });
     }
 
-    // Check if document exists and user owns it
+    // Check if document exists and user has access to share it
     const doc = await storage.getDocument(documentId);
     if (!doc) {
       return res.status(404).json({ message: "Document not found" });
     }
 
+    if (doc.deletedAt) {
+      return res.status(400).json({ message: "Cannot share a document that is in trash" });
+    }
+
+    // Allow owner OR anyone the document is shared with to re-share it
+    // Non-owners can only grant up to their own permission level
+    const PERMISSION_LEVELS: Record<string, number> = {
+      view: 1,
+      comment: 2,
+      edit: 3,
+      edit_comment: 4,
+    };
+
     if (doc.ownerId !== currentUserId) {
-      return res.status(403).json({ message: "Only the document owner can share it" });
+      const currentUserShare = await storage.getShareInDocumentTree(documentId, currentUserId);
+      if (!currentUserShare) {
+        return res.status(403).json({ message: "You don't have access to share this document" });
+      }
+
+      // Cap permission to the sharer's own permission level
+      const sharerLevel = PERMISSION_LEVELS[currentUserShare.permission] || 0;
+      const requestedLevel = PERMISSION_LEVELS[permission] || 0;
+      if (requestedLevel > sharerLevel) {
+        permission = currentUserShare.permission;
+      }
     }
 
     // Check if share already exists to determine if this is new or update

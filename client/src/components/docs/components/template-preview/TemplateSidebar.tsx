@@ -60,7 +60,7 @@ export function TemplateSidebar({
             if (hasChildren) onToggleExpanded(page.id);
           }}
           className={cn(
-            "w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-[13px] transition-colors relative",
+            "w-full flex items-center gap-2 px-3 py-1.5 lg:py-2 rounded-md text-left text-[12px] lg:text-[13px] transition-colors relative",
             "hover:bg-white/10",
             isSelected && "bg-white/10 text-white"
           )}
@@ -70,7 +70,7 @@ export function TemplateSidebar({
           aria-expanded={hasChildren ? isExpanded : undefined}
         >
           {isSelected && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-indigo-500 rounded-r" />
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-teal-500 rounded-r" />
           )}
           {hasChildren && (
             <span
@@ -90,7 +90,7 @@ export function TemplateSidebar({
           {!hasChildren && (
             <span className={cn(
               "w-1.5 h-1.5 rounded-full flex-shrink-0",
-              isSelected ? "bg-indigo-400" : "bg-gray-600"
+              isSelected ? "bg-teal-400" : "bg-gray-600"
             )} />
           )}
           <span className={cn(
@@ -115,13 +115,13 @@ export function TemplateSidebar({
       className={cn(
         "flex-shrink-0 bg-[#2b2d31] dark:bg-[#1e2024] flex flex-col border-r border-white/10",
         "hidden md:flex",
-        sidebarCollapsed ? "w-0 overflow-hidden" : "w-[240px]"
+        sidebarCollapsed ? "w-0 overflow-hidden" : "w-[200px] lg:w-[240px]"
       )}
     >
       {/* Sidebar Header */}
       <div className="p-2 sm:p-4 flex items-center justify-between border-b border-white/10">
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-indigo-600 flex items-center justify-center">
+          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-teal-600 flex items-center justify-center">
             <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
           </div>
           <div>

@@ -4,8 +4,10 @@ import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { DocumentBreadcrumb } from "../components/document-breadcrumb";
 import { EditorTopActions } from "../components/editor-top-actions";
+import { ActiveUsers } from "../components/active-users";
 import { formatRelativeTime, wasUpdated } from "@/lib/date-utils";
 import type { DocumentWithOwner } from "@shared/schema";
+import type { CollaborationUser } from "@/hooks/use-collaboration";
 
 interface EditorHeaderProps {
   title: string;
@@ -22,8 +24,11 @@ interface EditorHeaderProps {
   category?: "blank" | "meeting_notes" | "project_overview" | "todo_list" | null;
   document?: DocumentWithOwner | null;
   canEdit?: boolean;
+  isOwner?: boolean;
   onDuplicate?: () => void;
   onDelete?: () => void;
+  connectedUsers?: CollaborationUser[];
+  isCollaborationConnected?: boolean;
 }
 
 export function EditorHeader({
@@ -41,8 +46,11 @@ export function EditorHeader({
   category,
   document,
   canEdit = true,
+  isOwner = true,
   onDuplicate,
   onDelete,
+  connectedUsers = [],
+  isCollaborationConnected = false,
 }: EditorHeaderProps) {
   // Use duplicateError from parent (from save attempt)
   const showWarning = duplicateError?.show || false;
@@ -55,24 +63,24 @@ export function EditorHeader({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+    <div className="bg-white dark:bg-[#0d1117] border-b border-slate-200 dark:border-slate-700/50 sticky top-0 z-10">
       {/* Breadcrumb and Top Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between min-w-0">
         <DocumentBreadcrumb
           title={title}
           isNewDoc={isNewDoc}
           category={category}
           onNavigateBack={onNavigateBack}
         />
-        <div className="px-2 sm:px-4 py-1.5 sm:py-2">
+        <div className="px-1 sm:px-4 py-1.5 sm:py-2 flex-shrink-0">
           <EditorTopActions
             document={document || null}
             isNewDoc={isNewDoc}
             canEdit={canEdit}
             onClose={onNavigateBack}
             onDuplicate={onDuplicate}
-            onDelete={onDelete}
-            onRename={onTitleChange}
+            onDelete={isOwner ? onDelete : undefined}
+            onRename={isOwner ? onTitleChange : undefined}
           />
         </div>
       </div>
@@ -88,8 +96,8 @@ export function EditorHeader({
               className={`text-lg sm:text-2xl font-bold border-0 focus-visible:ring-0 px-0 h-auto py-1 placeholder:text-gray-400 ${
                 titleRequiredError ? "placeholder:text-red-400 dark:placeholder:text-red-500" :
                 showWarning ? "text-amber-600 dark:text-amber-500" : ""
-              } ${!canEdit ? "cursor-not-allowed text-gray-500" : ""}`}
-              readOnly={!canEdit}
+              } ${!isOwner ? "cursor-not-allowed text-gray-500" : ""}`}
+              readOnly={!isOwner}
               data-testid="input-doc-title"
             />
           </div>
@@ -132,6 +140,10 @@ export function EditorHeader({
           )}
 
           <div className="flex items-center gap-2 sm:gap-3 mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+            {/* Active collaboration users */}
+            {!isNewDoc && (connectedUsers.length > 0 || isCollaborationConnected) && (
+              <ActiveUsers users={connectedUsers} isConnected={isCollaborationConnected} />
+            )}
             {lastSavedAt && !isNewDoc && (
               <span data-testid="last-saved-indicator">
                 {isSaving ? (
@@ -153,7 +165,7 @@ export function EditorHeader({
                 <span>
                   Last updated {formatRelativeTime(documentUpdatedAt)}
                 </span>
-                {document?.lastUpdater && document.lastUpdater.id !== document.ownerId && (
+                {document?.lastUpdater && (
                   <span className="text-gray-400 dark:text-gray-500">
                     by {document.lastUpdater.displayName}
                   </span>
